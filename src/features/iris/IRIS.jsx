@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import * as THREE from "three";
+import { classifyTernary } from "../../lib/ternary.js";
 
 // ═══════════════════════════════════════════════════════════════
 // IRIS v3.2 — Integrative Resonance Identity Simulation
@@ -273,11 +274,9 @@ const SCENARIOS = [
 ];
 
 // ═══ Facet interpretation helper ═══
-function getFacetInterpretation(facet, value) {
-  if (value <= 0.35) return facet.low;
-  if (value <= 0.65) return facet.mid;
-  return facet.high;
-}
+// Ternary classifier extracted to src/lib/ternary.js — this is now
+// a one-liner that routes low/mid/high via a branchless index.
+const getFacetInterpretation = (facet, value) => classifyTernary(facet, value);
 
 // ═══ 3D IRIS ═══
 function IrisScene({ facetScores, enneagramType }) {
@@ -386,8 +385,15 @@ function generateProfileHTML(facetScores, enneagramType, enneagramScores, timest
 }
 
 // ═══ MAIN APP ═══
-export default function IRISApp() {
-  const [phase, setPhase] = useState("landing");
+// Props:
+//   onComplete(results)  called once when results are calculated;
+//                        Engram uses this to persist results and
+//                        navigate out of the IRIS flow.
+//   onExit()             fired by the "Back" affordance (optional).
+//   initialPhase         "landing" | "assess" — lets Engram skip the
+//                        IRIS landing when it's the outer app's landing.
+export default function IRISApp({ onComplete, onExit, initialPhase = "landing" } = {}) {
+  const [phase, setPhase] = useState(initialPhase);
   const [qIdx, setQIdx] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [facetScores, setFacetScores] = useState(() => { const s = {}; FACETS.forEach(f => { s[f.id] = 0; }); return s; });
@@ -409,8 +415,18 @@ export default function IRISApp() {
     const ts = {};
     Object.entries(ENNEAGRAM_PROFILES).forEach(([t, p]) => { let d = 0, c = 0; FACETS.forEach(f => { d += Math.pow((p.facets[f.id] || 0) - (avg[f.id] || 0), 2); c++; }); ts[t] = 1 - Math.sqrt(d / c); });
     setEnneagramScores(ts);
-    setEnneagramType(parseInt(Object.entries(ts).sort((a, b) => b[1] - a[1])[0][0]));
+    const type = parseInt(Object.entries(ts).sort((a, b) => b[1] - a[1])[0][0]);
+    setEnneagramType(type);
     setTimestamp(new Date().toISOString());
+    if (typeof onComplete === "function") {
+      // Fire-and-forget: outer app persists to Zustand/Supabase.
+      try {
+        onComplete({ facetScores: avg, enneagramType: type, enneagramScores: ts });
+      } catch (e) {
+        // Never let a callback bug crash the results screen.
+        console.error("IRIS onComplete handler failed", e);
+      }
+    }
   };
 
   const handleChoice = choice => {
@@ -533,7 +549,12 @@ export default function IRISApp() {
                 </div>); })}
             </div>
           </div>}
-          <div style={{ textAlign: "center", marginTop: 12 }}><button onClick={restart} style={{ background: "transparent", border: "none", color: "#333", fontSize: 10, cursor: "pointer", ...mono, letterSpacing: 2, textTransform: "uppercase" }}>Re-Simulate</button></div>
+          <div style={{ textAlign: "center", marginTop: 12, display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+            <button onClick={restart} style={{ background: "transparent", border: "none", color: "#333", fontSize: 10, cursor: "pointer", ...mono, letterSpacing: 2, textTransform: "uppercase" }}>Re-Simulate</button>
+            {typeof onExit === "function" && (
+              <button onClick={onExit} style={{ background: "transparent", border: "none", color: profile ? profile.color : "#666", fontSize: 10, cursor: "pointer", ...mono, letterSpacing: 2, textTransform: "uppercase" }}>Continue →</button>
+            )}
+          </div>
           <div style={{ textAlign: "center", fontSize: 8, color: "#1a1a2a", ...mono, marginTop: 8 }}>IRIS v3.2 · Eclipse Ventures LLC · Yunis AI</div>
         </div>
       </div>
