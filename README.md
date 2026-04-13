@@ -101,12 +101,16 @@ This is the canonical shipping path for this repo. **No Git integration required
 
 1. `npm ci && npm run build`
 2. Open [app.netlify.com/drop](https://app.netlify.com/drop).
-3. Drag the **`dist/` folder** (not a zip, the folder itself) onto the page.
+3. **Drag the `dist/` folder itself** — not the repo folder, not a zip. The thing you drag must contain `index.html` at its top level. (The repo's own `index.html` is a Vite source file and will not run as a site; you must drag the built `dist/`.)
 4. Netlify returns a `https://<random>.netlify.app` URL within ~10 seconds.
 5. In the site dashboard → **Site settings → Change site name** → pick something nice like `engram-app`.
 6. Open the URL on your phone and tap **Add to Home Screen** / **Install app**. That's a PWA install.
 
 Every redeploy = repeat steps 1–3 with the updated `dist/`.
+
+> **If you see a Netlify "Page not found" at `/`:** you dragged the wrong folder. Netlify Drop publishes the folder exactly as-is — it does not run a build. Drag `dist/`, not `Project-Engram/`.
+
+**Why `_redirects` and `_headers` ship in `dist/`:** Netlify Drop does *not* read `netlify.toml` (that's only for Git-connected builds). The SPA fallback and security headers live in `public/_redirects` and `public/_headers`, which Vite copies into `dist/` at build time. This is what makes sub-routes like `/journal`, `/calendar`, `/insights/chat` resolve correctly after a page refresh on a Drop deploy.
 
 ### Custom domain
 
