@@ -1,7 +1,11 @@
 // ─────────────────────────────────────────────────────────────
 // <Screen /> — the consistent page frame used by every tab.
-// Handles safe-area insets, the bottom-nav offset, and the
-// canonical header (label + optional right-aligned action).
+// ─────────────────────────────────────────────────────────────
+// Handles safe-area insets, the bottom-nav offset, the
+// canonical header (label + optional right-aligned action),
+// an optional decorative `glyph` slot next to the title, and
+// a default fade-in transition on mount so route changes feel
+// continuous instead of stepped.
 // ─────────────────────────────────────────────────────────────
 
 export default function Screen({
@@ -9,12 +13,15 @@ export default function Screen({
   title,
   subtitle,
   action,
+  glyph,
   children,
   scroll = true,
   padBottom = true,
+  fadeIn = true,
 }) {
   return (
     <div
+      className={fadeIn ? 'engram-fade-in' : undefined}
       style={{
         flex: 1,
         display: 'flex',
@@ -25,16 +32,28 @@ export default function Screen({
         paddingRight: 'var(--safe-right)',
       }}
     >
-      {(label || title || action) && (
+      {(label || title || action || glyph) && (
         <header
           style={{
             padding: '16px 20px 8px',
             display: 'flex',
-            alignItems: 'flex-end',
+            alignItems: 'flex-start',
             justifyContent: 'space-between',
             gap: 12,
           }}
         >
+          {glyph && (
+            <div
+              style={{
+                flexShrink: 0,
+                display: 'grid',
+                placeItems: 'center',
+                marginTop: 2,
+              }}
+            >
+              {glyph}
+            </div>
+          )}
           <div style={{ minWidth: 0, flex: 1 }}>
             {label && (
               <div

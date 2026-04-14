@@ -13,6 +13,7 @@ import Emoji from '../../components/Emoji.jsx';
 import MoodPicker from '../../components/MoodPicker.jsx';
 import ActivityPicker from '../../components/ActivityPicker.jsx';
 import Card from '../../components/Card.jsx';
+import { VesicaPiscis } from '../../components/SacredGeometry.jsx';
 import { NOTE_KINDS } from '../../data/notekinds.js';
 import { moodById } from '../../data/moods.js';
 import { useStore, selectTodayEntry } from '../../lib/store.js';
@@ -54,6 +55,7 @@ export default function CheckIn() {
       title={
         step === 0 ? 'How did it land?' : step === 1 ? 'What lit today up?' : 'Anything to catalog?'
       }
+      glyph={<VesicaPiscis size={40} color="#ffd166" opacity={0.45} spin={200} strokeWidth={0.55} />}
       subtitle={
         step === 0
           ? 'Pick the closest — you can change it.'

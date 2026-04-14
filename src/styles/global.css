@@ -168,3 +168,37 @@ a {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Sacred geometry animations
+   ───────────────────────────────────────────────────────────── */
+
+@keyframes engramRotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes engramBreathe {
+  0%, 100% { transform: scale(1);   opacity: 0.85; }
+  50%      { transform: scale(1.04); opacity: 1; }
+}
+
+@keyframes engramFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes engramGlow {
+  0%, 100% { filter: drop-shadow(0 0 0 transparent); }
+  50%      { filter: drop-shadow(0 0 14px rgba(255, 209, 102, 0.35)); }
+}
+
+/* Screen route transitions — applied by the <Screen> wrapper */
+.engram-fade-in {
+  animation: engramFadeIn 420ms cubic-bezier(0.2, 1, 0.3, 1);
+}
+
+/* Hero sigil — the Home page's center piece */
+.engram-breathe {
+  animation: engramBreathe 4.5s ease-in-out infinite;
+}

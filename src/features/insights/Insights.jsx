@@ -12,6 +12,13 @@ import Card from '../../components/Card.jsx';
 import Button from '../../components/Button.jsx';
 import Empty from '../../components/Empty.jsx';
 import Emoji from '../../components/Emoji.jsx';
+import {
+  Divider,
+  SeedOfLife,
+  VesicaPiscis,
+  GoldenSpiral,
+  EnneagramGlyph,
+} from '../../components/SacredGeometry.jsx';
 import MoodTrend from './charts/MoodTrend.jsx';
 import ActivityBars from './charts/ActivityBars.jsx';
 import FacetRadar from './charts/FacetRadar.jsx';
@@ -99,7 +106,11 @@ export default function Insights() {
   }
 
   return (
-    <Screen label="Your patterns" title="Insights">
+    <Screen
+      label="Your patterns"
+      title="Insights"
+      glyph={<SeedOfLife size={40} color="#7eb5ff" opacity={0.4} spin={200} strokeWidth={0.45} />}
+    >
       {/* Window selector */}
       <div
         style={{
@@ -168,18 +179,42 @@ export default function Insights() {
 
       {/* Facet radar */}
       {iris.facetScores && (
-        <Card style={{ marginBottom: 14 }} accent="#b197fc">
-          <SectionHeader
-            emoji="1f441"
-            title="Your IRIS domains"
-            subtitle="6-axis projection of your 24 facets"
-          />
-          <FacetRadar facetScores={iris.facetScores} />
+        <Card
+          style={{ marginBottom: 14, position: 'relative', overflow: 'hidden' }}
+          accent="#b197fc"
+        >
+          <div
+            style={{
+              position: 'absolute',
+              right: -40,
+              top: -40,
+              width: 160,
+              height: 160,
+              pointerEvents: 'none',
+              color: '#b197fc',
+            }}
+          >
+            <EnneagramGlyph
+              size={160}
+              opacity={0.1}
+              strokeWidth={0.4}
+              spin={340}
+              highlightType={iris.enneagramType}
+            />
+          </div>
+          <div style={{ position: 'relative' }}>
+            <SectionHeader
+              emoji="1f441"
+              title="Your IRIS domains"
+              subtitle="6-axis projection of your 24 facets"
+            />
+            <FacetRadar facetScores={iris.facetScores} />
+          </div>
         </Card>
       )}
 
       {/* ── Claude insights section ── */}
-      <div className="divider" />
+      <Divider color="#ffd166" opacity={0.4} glyph="seed" glyphSize={30} margin="28px 0" />
       <div style={{ marginBottom: 16 }}>
         <div
           className="mono"
@@ -295,7 +330,7 @@ export default function Insights() {
       {/* Past insights */}
       {insights.length > 0 && (
         <>
-          <div className="divider" />
+          <Divider color="#ffd166" opacity={0.4} glyph="seed" glyphSize={30} margin="28px 0" />
           <div
             className="mono"
             style={{

@@ -10,6 +10,13 @@ import Card from '../../components/Card.jsx';
 import Button from '../../components/Button.jsx';
 import Emoji from '../../components/Emoji.jsx';
 import FacetRadar from '../insights/charts/FacetRadar.jsx';
+import {
+  Sigil,
+  Merkaba,
+  EnneagramGlyph,
+  FlowerOfLife,
+  Divider,
+} from '../../components/SacredGeometry.jsx';
 import { useStore } from '../../lib/store.js';
 import { hasStripe } from '../../lib/stripe.js';
 import { hasSupabase } from '../../lib/supabase.js';
@@ -185,65 +192,154 @@ export default function You() {
 
       {/* IRIS results */}
       {iris.enneagramType ? (
-        <Card style={{ marginBottom: 14 }} accent={enneColor}>
-          <div
-            className="mono"
-            style={{
-              fontSize: 9,
-              letterSpacing: '0.3em',
-              color: 'var(--ink-dim)',
-              textTransform: 'uppercase',
-              marginBottom: 10,
-            }}
-          >
-            Your IRIS
-          </div>
+        <Card
+          style={{ marginBottom: 14, position: 'relative', overflow: 'hidden' }}
+          accent={enneColor}
+        >
+          {/* Faint Flower of Life backdrop */}
           <div
             style={{
-              fontSize: 52,
-              fontWeight: 300,
-              lineHeight: 1,
+              position: 'absolute',
+              inset: 0,
+              display: 'grid',
+              placeItems: 'center',
+              pointerEvents: 'none',
               color: enneColor,
-              textAlign: 'center',
             }}
           >
-            {iris.enneagramType}
+            <FlowerOfLife size={320} opacity={0.06} strokeWidth={0.3} spin={320} />
           </div>
-          <div
-            style={{
-              fontSize: 22,
-              fontWeight: 300,
-              color: 'var(--ink)',
-              textAlign: 'center',
-              letterSpacing: '0.05em',
-              marginTop: 6,
-            }}
-          >
-            {enneName}
-          </div>
-          <div style={{ marginTop: 16, marginBottom: 8 }}>
-            <FacetRadar facetScores={iris.facetScores} />
-          </div>
-          <div
-            className="mono"
-            style={{
-              fontSize: 9,
-              color: 'var(--ink-faint)',
-              textAlign: 'center',
-              letterSpacing: '0.1em',
-              marginTop: 4,
-            }}
-          >
-            Taken {iris.takenAt ? new Date(iris.takenAt).toLocaleDateString() : '—'}
-          </div>
-          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 10 }}>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/iris')}>
-              Re-run IRIS
-            </Button>
+
+          <div style={{ position: 'relative' }}>
+            <div
+              className="mono"
+              style={{
+                fontSize: 9,
+                letterSpacing: '0.3em',
+                color: 'var(--ink-dim)',
+                textTransform: 'uppercase',
+                marginBottom: 14,
+                textAlign: 'center',
+              }}
+            >
+              Your IRIS
+            </div>
+
+            {/* Sigil wrapping the Enneagram number, with the
+                glyph as a second rotating ring. */}
+            <div
+              style={{
+                display: 'grid',
+                placeItems: 'center',
+                marginBottom: 10,
+              }}
+            >
+              <div style={{ position: 'relative', width: 180, height: 180 }}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: enneColor,
+                  }}
+                >
+                  <EnneagramGlyph
+                    size={180}
+                    color={enneColor}
+                    opacity={0.55}
+                    strokeWidth={0.45}
+                    spin={320}
+                    highlightType={iris.enneagramType}
+                  />
+                </div>
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'grid',
+                    placeItems: 'center',
+                  }}
+                >
+                  <Sigil size={110} color={enneColor} opacity={0.6} spin={180}>
+                    <div
+                      className="engram-breathe"
+                      style={{
+                        fontSize: 56,
+                        fontWeight: 300,
+                        lineHeight: 1,
+                        color: enneColor,
+                        fontFamily: 'var(--serif)',
+                      }}
+                    >
+                      {iris.enneagramType}
+                    </div>
+                  </Sigil>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 300,
+                color: 'var(--ink)',
+                textAlign: 'center',
+                letterSpacing: '0.05em',
+                marginTop: 6,
+              }}
+            >
+              {enneName}
+            </div>
+
+            <Divider
+              color={enneColor}
+              opacity={0.4}
+              glyph="vesica"
+              glyphSize={22}
+              margin="18px 0 12px"
+            />
+
+            <div style={{ marginBottom: 8 }}>
+              <FacetRadar facetScores={iris.facetScores} />
+            </div>
+            <div
+              className="mono"
+              style={{
+                fontSize: 9,
+                color: 'var(--ink-faint)',
+                textAlign: 'center',
+                letterSpacing: '0.1em',
+                marginTop: 4,
+              }}
+            >
+              Taken {iris.takenAt ? new Date(iris.takenAt).toLocaleDateString() : '—'}
+            </div>
+            <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 10 }}>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/iris')}>
+                Re-run IRIS
+              </Button>
+            </div>
           </div>
         </Card>
       ) : (
-        <Card style={{ marginBottom: 14 }} accent="#b197fc">
+        <Card
+          style={{ marginBottom: 14, position: 'relative', overflow: 'hidden' }}
+          accent="#b197fc"
+        >
+          <div
+            style={{
+              position: 'absolute',
+              right: -30,
+              top: -30,
+              width: 180,
+              height: 180,
+              pointerEvents: 'none',
+              color: '#b197fc',
+            }}
+          >
+            <Merkaba size={180} opacity={0.14} strokeWidth={0.4} spin={240} />
+          </div>
           <div
             className="mono"
             style={{
@@ -252,6 +348,7 @@ export default function You() {
               color: 'var(--ink-dim)',
               textTransform: 'uppercase',
               marginBottom: 8,
+              position: 'relative',
             }}
           >
             Unmapped

@@ -10,6 +10,7 @@ import Card from '../../components/Card.jsx';
 import Button from '../../components/Button.jsx';
 import Emoji from '../../components/Emoji.jsx';
 import Empty from '../../components/Empty.jsx';
+import { VesicaPiscis } from '../../components/SacredGeometry.jsx';
 import { useStore } from '../../lib/store.js';
 import { moodById } from '../../data/moods.js';
 import { ALL_ACTIVITIES } from '../../data/activities.js';
@@ -30,6 +31,7 @@ export default function Journal() {
       label="Your catalog"
       title="Journal"
       subtitle={`${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`}
+      glyph={<VesicaPiscis size={40} color="#69db7c" opacity={0.4} spin={220} strokeWidth={0.55} />}
       action={
         <Button
           variant="solid"

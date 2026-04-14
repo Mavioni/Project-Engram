@@ -129,11 +129,47 @@ export default function Nav() {
             <>
               <div
                 style={{
+                  position: 'relative',
+                  width: 30,
+                  height: 30,
+                  display: 'grid',
+                  placeItems: 'center',
                   transform: isActive ? 'translateY(-1px) scale(1.05)' : 'none',
                   transition: 'transform 240ms ease',
                 }}
               >
-                <tab.Icon color={isActive ? '#ffd166' : '#666677'} />
+                {/* Active-state sigil: a thin rotating ring behind
+                    the icon, visible only when the tab is selected. */}
+                {isActive && (
+                  <svg
+                    viewBox="-50 -50 100 100"
+                    width={32}
+                    height={32}
+                    aria-hidden="true"
+                    style={{
+                      position: 'absolute',
+                      inset: 'auto',
+                      color: '#ffd166',
+                      opacity: 0.45,
+                      animation: 'engramRotate 18s linear infinite',
+                      transformOrigin: 'center',
+                    }}
+                  >
+                    <circle cx="0" cy="0" r="44" fill="none" stroke="currentColor" strokeWidth="1.2" />
+                    <circle
+                      cx="0"
+                      cy="0"
+                      r="40"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="0.8"
+                      strokeDasharray="2 6"
+                    />
+                  </svg>
+                )}
+                <div style={{ position: 'relative' }}>
+                  <tab.Icon color={isActive ? '#ffd166' : '#666677'} />
+                </div>
               </div>
               <span>{tab.label}</span>
             </>

@@ -10,6 +10,7 @@ import Screen from '../../components/Screen.jsx';
 import Card from '../../components/Card.jsx';
 import Button from '../../components/Button.jsx';
 import Emoji from '../../components/Emoji.jsx';
+import { SeedOfLife } from '../../components/SacredGeometry.jsx';
 import { useStore, selectEntriesByDay } from '../../lib/store.js';
 import { MOODS, moodById, moodByScore } from '../../data/moods.js';
 import { ALL_ACTIVITIES } from '../../data/activities.js';
@@ -29,6 +30,7 @@ export default function Calendar() {
     <Screen
       label={format(anchor, 'yyyy')}
       title={format(anchor, 'MMMM')}
+      glyph={<SeedOfLife size={40} color="#ff6b8a" opacity={0.4} spin={240} strokeWidth={0.5} />}
       action={
         <div style={{ display: 'flex', gap: 6 }}>
           <Button

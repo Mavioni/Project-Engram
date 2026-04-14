@@ -1,11 +1,12 @@
 // ─────────────────────────────────────────────────────────────
-// App shell — routes, layout, and the auth gates.
+// App shell — routes, layout, ambient backdrop, and auth gates.
 // ─────────────────────────────────────────────────────────────
 
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import Nav from './components/Nav.jsx';
 import AuthGate from './components/AuthGate.jsx';
+import Backdrop from './components/Backdrop.jsx';
 import Home from './features/home/Home.jsx';
 import Journal from './features/journal/Journal.jsx';
 import CheckIn from './features/journal/CheckIn.jsx';
@@ -50,58 +51,75 @@ export default function App() {
   const location = useLocation();
   return (
     <>
-      <Suspense fallback={<LazyFallback />}>
-        <Routes location={location}>
-          {/* Public routes — work fully offline */}
-          <Route path="/" element={<Home />} />
-          <Route path="/journal" element={<Journal />} />
-          <Route path="/journal/checkin" element={<CheckIn />} />
-          <Route path="/calendar" element={<Calendar />} />
-          <Route path="/insights" element={<Insights />} />
-          <Route path="/iris" element={<IrisRoute />} />
-          <Route path="/you" element={<You />} />
+      {/* Fixed ambient sacred-geometry layer behind everything. */}
+      <Backdrop />
 
-          {/* Auth flow */}
-          <Route path="/signin" element={<SignIn />} />
-          <Route path="/signin/2fa" element={<TwoFactorChallenge />} />
+      {/* Routed content sits above the backdrop. */}
+      <div
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+          minHeight: '100dvh',
+        }}
+      >
+        <Suspense fallback={<LazyFallback />}>
+          {/* key on pathname re-triggers the Screen fade-in on every route change */}
+          <Routes location={location} key={location.pathname}>
+            {/* Public routes — work fully offline */}
+            <Route path="/" element={<Home />} />
+            <Route path="/journal" element={<Journal />} />
+            <Route path="/journal/checkin" element={<CheckIn />} />
+            <Route path="/calendar" element={<Calendar />} />
+            <Route path="/insights" element={<Insights />} />
+            <Route path="/iris" element={<IrisRoute />} />
+            <Route path="/you" element={<You />} />
 
-          {/* Authenticated routes (require sign-in + 2FA challenge if enrolled) */}
-          <Route
-            path="/account"
-            element={
-              <AuthGate>
-                <Account />
-              </AuthGate>
-            }
-          />
-          <Route
-            path="/account/2fa"
-            element={
-              <AuthGate requireMfa={false}>
-                <TwoFactorEnroll />
-              </AuthGate>
-            }
-          />
-          <Route
-            path="/pricing"
-            element={
-              <AuthGate>
-                <Pricing />
-              </AuthGate>
-            }
-          />
-          <Route
-            path="/insights/chat"
-            element={
-              <AuthGate>
-                <Chat />
-              </AuthGate>
-            }
-          />
+            {/* Auth flow */}
+            <Route path="/signin" element={<SignIn />} />
+            <Route path="/signin/2fa" element={<TwoFactorChallenge />} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+            {/* Authenticated routes (require sign-in + 2FA challenge if enrolled) */}
+            <Route
+              path="/account"
+              element={
+                <AuthGate>
+                  <Account />
+                </AuthGate>
+              }
+            />
+            <Route
+              path="/account/2fa"
+              element={
+                <AuthGate requireMfa={false}>
+                  <TwoFactorEnroll />
+                </AuthGate>
+              }
+            />
+            <Route
+              path="/pricing"
+              element={
+                <AuthGate>
+                  <Pricing />
+                </AuthGate>
+              }
+            />
+            <Route
+              path="/insights/chat"
+              element={
+                <AuthGate>
+                  <Chat />
+                </AuthGate>
+              }
+            />
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </div>
       <Nav />
     </>
   );

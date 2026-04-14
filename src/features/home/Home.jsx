@@ -1,21 +1,33 @@
 // ─────────────────────────────────────────────────────────────
 // Home — the first thing a user sees after onboarding.
-// Shows: greeting, streak, today's entry (or quick check-in),
-// recent mood sparkline, and a prompt for the next insight.
+// Shows: greeting, today's sigil + mood, streak, recent
+// sparkline, IRIS summary, and a prompt for the next insight.
 // ─────────────────────────────────────────────────────────────
 
 import { useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Screen from '../../components/Screen.jsx';
 import Card from '../../components/Card.jsx';
 import Button from '../../components/Button.jsx';
 import Emoji from '../../components/Emoji.jsx';
 import Empty from '../../components/Empty.jsx';
-import { useStore, selectTodayEntry, selectLastN, selectTotalNoteCount } from '../../lib/store.js';
-import { MOODS, moodById } from '../../data/moods.js';
+import {
+  Sigil,
+  Divider,
+  SeedOfLife,
+  FlowerOfLife,
+  EnneagramGlyph,
+  Merkaba,
+} from '../../components/SacredGeometry.jsx';
+import {
+  useStore,
+  selectTodayEntry,
+  selectLastN,
+  selectTotalNoteCount,
+} from '../../lib/store.js';
+import { moodById } from '../../data/moods.js';
 import { ALL_ACTIVITIES } from '../../data/activities.js';
-import { greeting, prettyDate, currentStreak, dayKey } from '../../lib/time.js';
-import { domainColors } from '../../styles/tokens.js';
+import { greeting, prettyDate, currentStreak } from '../../lib/time.js';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -36,140 +48,176 @@ export default function Home() {
       label={greeting()}
       title={profile.name ? profile.name : 'Engram'}
       subtitle={prettyDate(new Date())}
+      glyph={
+        <SeedOfLife size={40} color="#ffd166" opacity={0.35} spin={180} strokeWidth={0.5} />
+      }
     >
-      {/* ── Today card ── */}
-      <Card accent={todayMood?.color || '#ffffff22'} style={{ marginBottom: 16 }}>
-        {today ? (
-          <div>
+      {/* ── Today hero card ── */}
+      <Card
+        accent={todayMood?.color || 'rgba(255,255,255,0.12)'}
+        style={{
+          marginBottom: 18,
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Subtle Flower of Life behind the content */}
+        <div
+          style={{
+            position: 'absolute',
+            right: -30,
+            top: -30,
+            width: 180,
+            height: 180,
+            pointerEvents: 'none',
+            color: todayMood?.color || '#7eb5ff',
+          }}
+        >
+          <FlowerOfLife size={180} opacity={0.08} strokeWidth={0.3} spin={200} />
+        </div>
+
+        <div style={{ position: 'relative' }}>
+          {today ? (
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 18,
+                  marginBottom: 16,
+                }}
+              >
+                <Sigil size={96} color={todayMood.color} opacity={0.45} spin={90}>
+                  <div className="engram-breathe">
+                    <Emoji code={todayMood.emoji} size={48} label={todayMood.label} />
+                  </div>
+                </Sigil>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    className="mono"
+                    style={{
+                      fontSize: 9,
+                      letterSpacing: '0.28em',
+                      color: 'var(--ink-dim)',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Today
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 26,
+                      color: todayMood.color,
+                      fontWeight: 300,
+                      letterSpacing: '0.02em',
+                    }}
+                  >
+                    {todayMood.label}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: 'var(--ink-soft)',
+                      fontStyle: 'italic',
+                      marginTop: 2,
+                    }}
+                  >
+                    {todayMood.subtitle}
+                  </div>
+                </div>
+              </div>
+              {today.activities && today.activities.length > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 6,
+                    flexWrap: 'wrap',
+                    marginBottom: 12,
+                  }}
+                >
+                  {today.activities.slice(0, 10).map((id) => {
+                    const a = ALL_ACTIVITIES.find((x) => x.id === id);
+                    if (!a) return null;
+                    return (
+                      <div
+                        key={id}
+                        title={a.label}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: '4px 10px',
+                          borderRadius: 999,
+                          border: `1px solid ${a.groupColor}33`,
+                          background: `${a.groupColor}10`,
+                          fontSize: 10,
+                          fontFamily: 'var(--mono)',
+                          color: 'var(--ink-soft)',
+                        }}
+                      >
+                        <Emoji code={a.emoji} size={14} />
+                        {a.label}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <Button
+                variant="subtle"
+                size="sm"
+                onClick={() => navigate('/journal/checkin')}
+              >
+                Add more →
+              </Button>
+            </div>
+          ) : (
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 14,
-                marginBottom: 14,
+                gap: 18,
               }}
             >
-              <div
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 20,
-                  background: `radial-gradient(circle, ${todayMood.color}25, transparent 70%)`,
-                  display: 'grid',
-                  placeItems: 'center',
-                }}
-              >
-                <Emoji code={todayMood.emoji} size={40} label={todayMood.label} />
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <Sigil size={96} color="#ffd166" opacity={0.35} spin={120}>
+                <div className="engram-breathe" style={{ fontSize: 34, color: '#ffd166' }}>
+                  ✧
+                </div>
+              </Sigil>
+              <div style={{ flex: 1 }}>
                 <div
                   className="mono"
                   style={{
-                    fontSize: 9,
-                    letterSpacing: '0.28em',
+                    fontSize: 11,
+                    letterSpacing: '0.3em',
                     color: 'var(--ink-dim)',
                     textTransform: 'uppercase',
+                    marginBottom: 6,
                   }}
                 >
-                  Today
+                  Today is unwritten
                 </div>
-                <div
+                <p
                   style={{
-                    fontSize: 22,
-                    color: todayMood.color,
-                    fontWeight: 300,
-                  }}
-                >
-                  {todayMood.label}
-                </div>
-                <div
-                  style={{
-                    fontSize: 13,
+                    margin: '0 0 14px',
                     color: 'var(--ink-soft)',
                     fontStyle: 'italic',
+                    lineHeight: 1.5,
+                    fontSize: 14,
                   }}
                 >
-                  {todayMood.subtitle}
-                </div>
+                  One check-in is how the pattern surfaces. Two minutes.
+                </p>
+                <Button
+                  variant="solid"
+                  tone="#ffd166"
+                  onClick={() => navigate('/journal/checkin')}
+                >
+                  Check in
+                </Button>
               </div>
             </div>
-            {today.activities && today.activities.length > 0 && (
-              <div
-                style={{
-                  display: 'flex',
-                  gap: 6,
-                  flexWrap: 'wrap',
-                  marginBottom: 12,
-                }}
-              >
-                {today.activities.slice(0, 10).map((id) => {
-                  const a = ALL_ACTIVITIES.find((x) => x.id === id);
-                  if (!a) return null;
-                  return (
-                    <div
-                      key={id}
-                      title={a.label}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        padding: '4px 10px',
-                        borderRadius: 999,
-                        border: `1px solid ${a.groupColor}33`,
-                        background: `${a.groupColor}10`,
-                        fontSize: 10,
-                        fontFamily: 'var(--mono)',
-                        color: 'var(--ink-soft)',
-                      }}
-                    >
-                      <Emoji code={a.emoji} size={14} />
-                      {a.label}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            <Button
-              variant="subtle"
-              size="sm"
-              onClick={() => navigate('/journal/checkin')}
-            >
-              Add more →
-            </Button>
-          </div>
-        ) : (
-          <div>
-            <div
-              style={{
-                fontSize: 11,
-                letterSpacing: '0.3em',
-                fontFamily: 'var(--mono)',
-                color: 'var(--ink-dim)',
-                textTransform: 'uppercase',
-                marginBottom: 8,
-              }}
-            >
-              Today is unwritten
-            </div>
-            <p
-              style={{
-                margin: '0 0 16px',
-                color: 'var(--ink-soft)',
-                fontStyle: 'italic',
-                lineHeight: 1.5,
-              }}
-            >
-              One check-in a day is how the pattern surfaces. Two minutes.
-            </p>
-            <Button
-              variant="solid"
-              tone="#ffd166"
-              onClick={() => navigate('/journal/checkin')}
-            >
-              Check In
-            </Button>
-          </div>
-        )}
+          )}
+        </div>
       </Card>
 
       {/* ── Stats row ── */}
@@ -178,7 +226,7 @@ export default function Home() {
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
           gap: 10,
-          marginBottom: 20,
+          marginBottom: 18,
         }}
       >
         <Stat label="Streak" value={streak} suffix={streak === 1 ? 'day' : 'days'} />
@@ -186,51 +234,74 @@ export default function Home() {
         <Stat label="Notes" value={totalNotes} />
       </div>
 
+      <Divider color="#7eb5ff" opacity={0.35} glyph="vesica" glyphSize={26} margin="8px 0 20px" />
+
       {/* ── Mood sparkline ── */}
       <Sparkline entries={recent} />
 
-      {/* ── IRIS summary ── */}
+      {/* ── IRIS summary or CTA ── */}
       {iris.enneagramType ? (
-        <IrisSummary iris={iris} onOpen={() => navigate('/you')} />
+        <>
+          <Divider color="#b197fc" opacity={0.35} glyph="enneagram" glyphSize={28} margin="22px 0 18px" />
+          <IrisSummary iris={iris} onOpen={() => navigate('/you')} />
+        </>
       ) : (
-        <Card style={{ marginTop: 20 }}>
-          <div
-            className="mono"
-            style={{
-              fontSize: 9,
-              letterSpacing: '0.3em',
-              color: 'var(--ink-dim)',
-              textTransform: 'uppercase',
-              marginBottom: 8,
-            }}
-          >
-            Next step
-          </div>
-          <h3
-            style={{
-              margin: '0 0 8px',
-              fontWeight: 300,
-              fontSize: 22,
-              color: 'var(--ink)',
-            }}
-          >
-            Meet your IRIS
-          </h3>
-          <p
-            style={{
-              margin: '0 0 16px',
-              color: 'var(--ink-soft)',
-              fontStyle: 'italic',
-              lineHeight: 1.6,
-            }}
-          >
-            24 facets. 16 crucible scenarios. A living artifact of who you are —
-            and the map Engram uses to write insights in your voice.
-          </p>
-          <Button variant="solid" tone="#7eb5ff" onClick={() => navigate('/iris')}>
-            Begin the simulation
-          </Button>
-        </Card>
+        <>
+          <Divider color="#b197fc" opacity={0.35} glyph="merkaba" glyphSize={28} margin="22px 0 18px" />
+          <Card style={{ position: 'relative', overflow: 'hidden' }}>
+            <div
+              style={{
+                position: 'absolute',
+                right: -40,
+                bottom: -40,
+                width: 180,
+                height: 180,
+                pointerEvents: 'none',
+                color: '#b197fc',
+              }}
+            >
+              <Merkaba size={180} opacity={0.12} strokeWidth={0.4} spin={160} />
+            </div>
+            <div style={{ position: 'relative' }}>
+              <div
+                className="mono"
+                style={{
+                  fontSize: 9,
+                  letterSpacing: '0.3em',
+                  color: 'var(--ink-dim)',
+                  textTransform: 'uppercase',
+                  marginBottom: 8,
+                }}
+              >
+                Next step
+              </div>
+              <h3
+                style={{
+                  margin: '0 0 8px',
+                  fontWeight: 300,
+                  fontSize: 22,
+                  color: 'var(--ink)',
+                }}
+              >
+                Meet your IRIS
+              </h3>
+              <p
+                style={{
+                  margin: '0 0 16px',
+                  color: 'var(--ink-soft)',
+                  fontStyle: 'italic',
+                  lineHeight: 1.6,
+                }}
+              >
+                24 facets. 16 crucible scenarios. A living artifact of who you are —
+                and the map Engram uses to write insights in your voice.
+              </p>
+              <Button variant="solid" tone="#b197fc" onClick={() => navigate('/iris')}>
+                Begin the simulation
+              </Button>
+            </div>
+          </Card>
+        </>
       )}
 
       {/* ── Empty state if no entries at all ── */}
@@ -294,7 +365,7 @@ function Sparkline({ entries }) {
     .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
     .join(' ');
   return (
-    <Card style={{ marginBottom: 20 }}>
+    <Card>
       <div
         className="mono"
         style={{
@@ -320,7 +391,14 @@ function Sparkline({ entries }) {
             <stop offset="100%" stopColor="#ffd166" />
           </linearGradient>
         </defs>
-        <path d={d} fill="none" stroke="url(#sparkGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path
+          d={d}
+          fill="none"
+          stroke="url(#sparkGrad)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
         {pts.map((p) => (
           <circle key={p.day} cx={p.x} cy={p.y} r="2.5" fill="#fff" opacity="0.85" />
         ))}
@@ -331,29 +409,33 @@ function Sparkline({ entries }) {
 
 function IrisSummary({ iris, onOpen }) {
   return (
-    <Card style={{ marginTop: 4 }} accent="#b197fc">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: '50%',
-            background:
-              'radial-gradient(circle, rgba(177,151,252,0.28), transparent 70%)',
-            display: 'grid',
-            placeItems: 'center',
-          }}
-        >
+    <Card accent="#b197fc" style={{ position: 'relative', overflow: 'hidden' }}>
+      <div
+        style={{
+          position: 'absolute',
+          right: -24,
+          top: -24,
+          width: 120,
+          height: 120,
+          pointerEvents: 'none',
+          color: '#b197fc',
+        }}
+      >
+        <EnneagramGlyph size={120} opacity={0.22} strokeWidth={0.4} spin={280} highlightType={iris.enneagramType} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, position: 'relative' }}>
+        <Sigil size={64} color="#b197fc" opacity={0.5} spin={150}>
           <div
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: '50%',
-              background: 'rgba(177,151,252,0.35)',
-              boxShadow: '0 0 24px rgba(177,151,252,0.4)',
+              fontSize: 24,
+              fontWeight: 300,
+              color: '#b197fc',
+              fontFamily: 'var(--serif)',
             }}
-          />
-        </div>
+          >
+            {iris.enneagramType}
+          </div>
+        </Sigil>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             className="mono"
