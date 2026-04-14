@@ -1,0 +1,95 @@
+name: Deploy to GitHub Pages
+
+# ─────────────────────────────────────────────────────────────
+# Engram — production deploy to GitHub Pages.
+#
+# On every push to main (or the current feature branch), this
+# workflow:
+#   1. Installs deps with npm ci
+#   2. Builds with BASE_PATH set to /<repo>/ (so Vite emits
+#      asset URLs that work on github.io/<repo>/)
+#   3. Uploads dist/ as a Pages artifact
+#   4. Publishes via actions/deploy-pages
+#
+# Prerequisites (one-time, in the repo's Settings tab):
+#   - Settings → Pages → Build and deployment → Source:
+#       "GitHub Actions"
+#   - If you're pushing from a non-default branch, also:
+#       Settings → Environments → github-pages →
+#       Deployment branches → Selected branches →
+#       add the branch name.
+#
+# Manually trigger with: Actions → "Deploy to GitHub Pages" → Run workflow.
+# ─────────────────────────────────────────────────────────────
+
+on:
+  push:
+    branches:
+      - main
+      - claude/optimize-ternary-logic-vSODz
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deploy in flight at a time — don't cancel in progress
+# so finished builds always publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Build
+        run: npm run build
+        env:
+          # GitHub Pages for project sites serves under /<repo>/.
+          # Vite needs to bake that into every asset URL, router
+          # basename, and PWA manifest scope. We derive it from
+          # the repo name so the workflow is portable to any fork.
+          BASE_PATH: /${{ github.event.repository.name }}/
+          # Env vars used by the browser bundle (all optional —
+          # Engram runs fully local-only if they're missing):
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          VITE_STRIPE_PRICE_MONTHLY: ${{ secrets.VITE_STRIPE_PRICE_MONTHLY }}
+          VITE_STRIPE_PRICE_YEARLY: ${{ secrets.VITE_STRIPE_PRICE_YEARLY }}
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

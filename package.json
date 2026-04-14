@@ -10,7 +10,6 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --host --port 4173",
-    "drop": "node scripts/drop.mjs",
     "icons": "node scripts/gen-icons.mjs",
     "prebuild": "node scripts/gen-icons.mjs",
     "lint": "eslint src --max-warnings=0",

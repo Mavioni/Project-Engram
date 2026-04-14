@@ -114,6 +114,31 @@
     </style>
   </head>
   <body>
+    <!--
+      SPA redirect decode — must run BEFORE React mounts so the
+      router sees the real URL. GitHub Pages has no server-side
+      rewrites; the 404.html fallback encodes the original path
+      into the query string, and this script restores it with
+      history.replaceState so React Router picks it up.
+      See rafgraph/spa-github-pages (MIT).
+    -->
+    <script>
+      (function (l) {
+        if (l.search[1] === '/') {
+          var decoded = l.search
+            .slice(1)
+            .split('&')
+            .map(function (s) { return s.replace(/~and~/g, '&'); })
+            .join('?');
+          window.history.replaceState(
+            null,
+            null,
+            l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location));
+    </script>
+
     <div id="root">
       <div id="engram-boot" role="status" aria-live="polite">
         <div id="engram-boot__inner">

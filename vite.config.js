@@ -4,11 +4,22 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 // ─────────────────────────────────────────────────────────────
 // Engram — Vite build config
-// Produces a static, PWA-installable bundle in dist/.
-// Drop dist/ onto app.netlify.com/drop to deploy.
+// ─────────────────────────────────────────────────────────────
+// Deploys to GitHub Pages at https://<user>.github.io/<repo>/.
+// Because Pages serves project sites under a subpath, every
+// built URL (assets, manifest, SW scope, router basename) has to
+// share the same base. We pull it from BASE_PATH at build time so
+// the GitHub Action can set it to /${repo}/ automatically and
+// local dev stays at /.
+//
+//   npm run dev                          → base = /
+//   BASE_PATH=/Project-Engram/ npm run build → base = /Project-Engram/
 // ─────────────────────────────────────────────────────────────
 
+const base = process.env.BASE_PATH || '/';
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
@@ -23,7 +34,7 @@ export default defineConfig({
         'favicon.svg',
         'apple-touch-icon.png',
         'robots.txt',
-        '.well-known/assetlinks.json',
+        '404.html',
       ],
       manifest: {
         name: 'Engram — Catalog Yourself',
@@ -34,8 +45,9 @@ export default defineConfig({
         background_color: '#06060e',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
-        scope: '/',
+        start_url: base,
+        scope: base,
+        id: base,
         categories: ['health', 'lifestyle', 'productivity'],
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
@@ -52,6 +64,10 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         // Three.js pushes us over the default 2 MB budget.
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+        // SPA navigation fallback must include the base path so
+        // deep links under /Project-Engram/* route through index.html.
+        navigateFallback: base + 'index.html',
+        navigateFallbackDenylist: [/^\/api\//, /sw\.js$/, /workbox-.*\.js$/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\//,

@@ -9,11 +9,17 @@ import './styles/global.css';
 // ─────────────────────────────────────────────────────────────
 // Mount React, replacing the inline #engram-boot indicator from
 // index.html.
+//
+// `import.meta.env.BASE_URL` is injected by Vite from the `base`
+// option in vite.config.js. In dev it's '/', in production on
+// GitHub Pages it's '/Project-Engram/'. React Router strips the
+// trailing slash from basename internally, so passing BASE_URL
+// directly is safe.
 // ─────────────────────────────────────────────────────────────
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <AuthProvider>
           <App />
         </AuthProvider>
@@ -25,10 +31,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 // ─────────────────────────────────────────────────────────────
 // Service worker — deferred until after `load` so it never
 // competes with the main bundle for bandwidth on first paint.
-// On a fresh Netlify Drop deploy this was causing the tab to
-// look like it was "still loading" while Workbox precached
-// ~1.5 MB in the background. Now the page is interactive first;
-// the SW installs once the user already has something to look at.
+// Scope is set by vite-plugin-pwa to match the `base` path
+// (e.g. /Project-Engram/ on GitHub Pages), so the SW only
+// intercepts requests under our project subpath.
 // ─────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
