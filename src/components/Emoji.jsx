@@ -34,6 +34,11 @@ export default function Emoji({
       draggable={false}
       loading="lazy"
       decoding="async"
+      // `fetchpriority=low` tells the browser these CDN fetches
+      // must not compete with critical bundle JS/CSS. Emoji are
+      // chrome, not content — letting the main bundle win the
+      // bandwidth race keeps first-paint fast.
+      fetchpriority="low"
       className={className}
       style={{
         width: size,

@@ -1,10 +1,11 @@
 // ─────────────────────────────────────────────────────────────
-// App shell — routes, layout, and the onboarding gate.
+// App shell — routes, layout, and the auth gates.
 // ─────────────────────────────────────────────────────────────
 
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import Nav from './components/Nav.jsx';
+import AuthGate from './components/AuthGate.jsx';
 import Home from './features/home/Home.jsx';
 import Journal from './features/journal/Journal.jsx';
 import CheckIn from './features/journal/CheckIn.jsx';
@@ -16,6 +17,14 @@ const Insights = lazy(() => import('./features/insights/Insights.jsx'));
 const Chat = lazy(() => import('./features/insights/Chat.jsx'));
 const IrisRoute = lazy(() => import('./features/iris/IrisRoute.jsx'));
 const Pricing = lazy(() => import('./features/subscription/Pricing.jsx'));
+
+// Auth screens (lazy — most users hit them rarely).
+const SignIn = lazy(() => import('./features/auth/SignIn.jsx'));
+const TwoFactorChallenge = lazy(() =>
+  import('./features/auth/TwoFactorChallenge.jsx'),
+);
+const TwoFactorEnroll = lazy(() => import('./features/auth/TwoFactorEnroll.jsx'));
+const Account = lazy(() => import('./features/auth/Account.jsx'));
 
 function LazyFallback() {
   return (
@@ -29,6 +38,7 @@ function LazyFallback() {
         fontSize: 10,
         letterSpacing: '0.3em',
         textTransform: 'uppercase',
+        minHeight: '60vh',
       }}
     >
       Loading…
@@ -38,21 +48,57 @@ function LazyFallback() {
 
 export default function App() {
   const location = useLocation();
-  // The router mounts Nav once; Nav itself decides whether to hide
-  // on fullscreen routes (see Nav.jsx HIDDEN_PREFIXES).
   return (
     <>
       <Suspense fallback={<LazyFallback />}>
         <Routes location={location}>
+          {/* Public routes — work fully offline */}
           <Route path="/" element={<Home />} />
           <Route path="/journal" element={<Journal />} />
           <Route path="/journal/checkin" element={<CheckIn />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/insights" element={<Insights />} />
-          <Route path="/insights/chat" element={<Chat />} />
           <Route path="/iris" element={<IrisRoute />} />
           <Route path="/you" element={<You />} />
-          <Route path="/pricing" element={<Pricing />} />
+
+          {/* Auth flow */}
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/signin/2fa" element={<TwoFactorChallenge />} />
+
+          {/* Authenticated routes (require sign-in + 2FA challenge if enrolled) */}
+          <Route
+            path="/account"
+            element={
+              <AuthGate>
+                <Account />
+              </AuthGate>
+            }
+          />
+          <Route
+            path="/account/2fa"
+            element={
+              <AuthGate requireMfa={false}>
+                <TwoFactorEnroll />
+              </AuthGate>
+            }
+          />
+          <Route
+            path="/pricing"
+            element={
+              <AuthGate>
+                <Pricing />
+              </AuthGate>
+            }
+          />
+          <Route
+            path="/insights/chat"
+            element={
+              <AuthGate>
+                <Chat />
+              </AuthGate>
+            }
+          />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

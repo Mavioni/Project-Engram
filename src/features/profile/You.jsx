@@ -13,6 +13,7 @@ import FacetRadar from '../insights/charts/FacetRadar.jsx';
 import { useStore } from '../../lib/store.js';
 import { hasStripe } from '../../lib/stripe.js';
 import { hasSupabase } from '../../lib/supabase.js';
+import { useAuth } from '../../lib/auth.jsx';
 
 const ENNEAGRAM_NAMES = {
   1: 'The Reformer',
@@ -53,8 +54,75 @@ export default function You() {
   const enneColor = iris.enneagramType ? ENNEAGRAM_COLORS[iris.enneagramType] : '#fff';
   const enneName = iris.enneagramType ? ENNEAGRAM_NAMES[iris.enneagramType] : null;
 
+  const auth = useAuth();
+
   return (
     <Screen label="Your profile" title="You">
+      {/* Account banner — sign in / account link */}
+      <Card
+        style={{ marginBottom: 14 }}
+        accent={auth.isAuthed ? (auth.hasVerifiedTotp ? '#63e6be' : '#ffd166') : undefined}
+      >
+        <div
+          className="mono"
+          style={{
+            fontSize: 9,
+            letterSpacing: '0.3em',
+            color: 'var(--ink-dim)',
+            textTransform: 'uppercase',
+            marginBottom: 8,
+          }}
+        >
+          Account
+        </div>
+        {!auth.configured ? (
+          <div style={{ fontSize: 14, color: 'var(--ink-soft)', fontStyle: 'italic' }}>
+            Local-only mode. Configure Supabase to enable accounts, sync, and Pro.
+          </div>
+        ) : auth.isAuthed ? (
+          <div>
+            <div style={{ fontSize: 18, color: 'var(--ink)', wordBreak: 'break-all' }}>
+              {auth.user?.email}
+            </div>
+            <div
+              className="mono"
+              style={{
+                fontSize: 10,
+                color: auth.hasVerifiedTotp ? '#63e6be' : 'var(--ink-dim)',
+                marginTop: 4,
+                letterSpacing: '0.04em',
+              }}
+            >
+              {auth.hasVerifiedTotp ? '2FA enabled · AAL2' : '2FA off · AAL1'}
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/account')}>
+                Manage account →
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize: 18, color: 'var(--ink)' }}>Not signed in</div>
+            <p
+              style={{
+                margin: '4px 0 14px',
+                color: 'var(--ink-soft)',
+                fontStyle: 'italic',
+                fontSize: 13,
+                lineHeight: 1.6,
+              }}
+            >
+              Engram works fully offline. Sign in to sync, subscribe to Pro,
+              and chat with your IRIS.
+            </p>
+            <Button variant="solid" tone="#ffd166" size="sm" onClick={() => navigate('/signin')}>
+              Sign in / Sign up
+            </Button>
+          </div>
+        )}
+      </Card>
+
       {/* Name */}
       <Card style={{ marginBottom: 14 }}>
         <div

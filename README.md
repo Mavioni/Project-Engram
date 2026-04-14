@@ -1,9 +1,9 @@
 # Engram
 
-**Catalog yourself.** Engram is a local-first personality-tracking PWA that pairs a 24-facet IRIS personality map with a daily, emoji-driven journal and Claude-powered insights. It builds to a static bundle, drops onto Netlify, and wraps for the Play Store via PWABuilder or Bubblewrap.
+**Catalog yourself.** Engram is a local-first personality-tracking PWA that pairs a 24-facet IRIS personality map with a daily, emoji-driven journal and Claude-powered insights. It deploys to **GitHub Pages** via a GitHub Actions workflow on every push.
 
 ```
-npm ci && npm run build && open dist/
+git push origin main          # GitHub Actions builds + publishes
 ```
 
 — that's the whole shipping story.
@@ -95,69 +95,149 @@ npm run preview             # serves dist/ on http://localhost:4173
 
 ---
 
-## Deploying to Netlify (drag-and-drop)
+## Deploying to GitHub Pages
 
-This is the canonical shipping path for this repo. **No Git integration required** — no GitHub App to authorize.
+This repo ships a GitHub Actions workflow (`.github/workflows/deploy.yml`) that builds and publishes to GitHub Pages on every push. One-time setup in the repo's **Settings** tab:
 
-1. `npm ci && npm run build`
-2. Open [app.netlify.com/drop](https://app.netlify.com/drop).
-3. Drag the **`dist/` folder** (not a zip, the folder itself) onto the page.
-4. Netlify returns a `https://<random>.netlify.app` URL within ~10 seconds.
-5. In the site dashboard → **Site settings → Change site name** → pick something nice like `engram-app`.
-6. Open the URL on your phone and tap **Add to Home Screen** / **Install app**. That's a PWA install.
+1. **Settings → Pages → Build and deployment → Source:** set to **GitHub Actions**.
+2. **(Optional)** If you're pushing from a non-default branch, also go to **Settings → Environments → `github-pages` → Deployment branches and tags** and add your branch to the allow-list. The workflow ships with both `main` and `claude/optimize-ternary-logic-vSODz` pre-configured as triggers.
+3. **(Optional)** If you want the auth / Claude / Stripe features to light up in production, add these repo secrets under **Settings → Secrets and variables → Actions**:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_STRIPE_PUBLISHABLE_KEY`
+   - `VITE_STRIPE_PRICE_MONTHLY`
+   - `VITE_STRIPE_PRICE_YEARLY`
 
-Every redeploy = repeat steps 1–3 with the updated `dist/`.
+   Engram runs fully offline without them — the workflow reads them as optional and the client falls back to local-only mode if they're missing.
+
+After that, every push to `main` builds the site and deploys it. Watch the run in the **Actions** tab. The live URL is:
+
+```
+https://<your-username>.github.io/<your-repo>/
+```
+
+For this repo: **https://mavioni.github.io/Project-Engram/**. You can trigger a build manually via **Actions → "Deploy to GitHub Pages" → Run workflow**.
+
+### Why the `/Project-Engram/` subpath
+
+GitHub Pages serves project sites under `https://<user>.github.io/<repo>/`, not at the domain root. Engram has to bake that subpath into every asset URL, the React Router basename, the PWA manifest `start_url` / `scope`, and the Workbox service-worker `navigateFallback`. The workflow sets `BASE_PATH=/${repo}/` at build time, `vite.config.js` reads it, and everything downstream stays consistent.
+
+If you later move Engram to a user/organization page (`<user>.github.io`) or a custom domain, set `BASE_PATH=/` — nothing else needs to change.
+
+### SPA routing on a static host
+
+GitHub Pages has no server-side rewrites. Deep links like `/Project-Engram/journal` would normally 404 on refresh because there's no file at that path. Engram works around this with the standard `rafgraph/spa-github-pages` trick:
+
+- **`public/404.html`** — served by Pages for any unknown path. A tiny script encodes the requested path into a query string and redirects to `/Project-Engram/?/journal`.
+- **Inline decode script in `index.html`** — runs before React mounts, restores the real path via `history.replaceState`, and hands control to React Router.
+
+The effect: clean URLs (`/Project-Engram/journal`), and refresh / share / deep link all work.
 
 ### Custom domain
 
-Netlify → **Domain management → Add a domain**. Point your DNS `A` record at Netlify's load balancer. HTTPS is automatic (Let's Encrypt). Use a real domain before you wrap for Play Store — TWAs need a stable origin for Digital Asset Links verification.
+To use your own domain (e.g. `engram.app`):
 
-### Security headers
-
-`netlify.toml` ships with HSTS, `X-Frame-Options: DENY`, `Permissions-Policy` (disables geo/camera/mic), and explicit `application/json` + CORS for `assetlinks.json`. No additional configuration needed.
+1. Create `public/CNAME` containing just the domain:
+   ```
+   engram.app
+   ```
+2. In **Settings → Pages → Custom domain**, enter the same domain. GitHub provisions a Let's Encrypt cert automatically.
+3. Point your DNS — an `A` record to GitHub's IPs, or a `CNAME` to `<user>.github.io`. See GitHub's docs.
+4. Since your site now lives at the root, you can change the workflow to pass `BASE_PATH=/` (or remove the env var entirely — it defaults to `/`).
 
 ---
 
 ## Wrapping for the Google Play Store (TWA)
 
-Engram qualifies for a **Trusted Web Activity** wrap — the native shell is a thin wrapper around your PWA, served from your Netlify domain. Two routes, both well-supported. Start with PWABuilder; move to Bubblewrap only if you need reproducible CI builds.
+Engram qualifies for a **Trusted Web Activity** wrap on **any custom domain** served over HTTPS. There's one caveat that matters for GitHub Pages:
 
-### Route A — PWABuilder (recommended, zero local Android setup)
+**GitHub Pages project sites cannot serve `/.well-known/assetlinks.json` at the domain root** — the file ends up at `/<repo>/.well-known/assetlinks.json`, which Play's Digital Asset Links check won't find. A TWA wrap needs the verification file at `https://<domain>/.well-known/assetlinks.json`, not under a subpath.
 
-1. Visit [pwabuilder.com](https://www.pwabuilder.com/).
-2. Paste your Netlify URL (e.g. `https://engram.app`). Wait for the report.
-3. Fix any "missing" items. The scaffold in this repo already ships with: installable manifest, registered service worker, HTTPS, maskable icon. Score should be 90+.
-4. Click **Package For Stores → Android**. Choose **Signed Play Store package**.
-5. PWABuilder will generate a `.aab` + an `assetlinks.json` content block containing the correct SHA‑256 fingerprint for the keystore it just created.
-6. **Copy that fingerprint** into `public/.well-known/assetlinks.json` (replace `PASTE_SHA256_FINGERPRINT_HERE_AFTER_FIRST_ANDROID_BUILD`) and **redeploy** `dist/` to Netlify. Verification requires the file to be live before submission.
-7. Create a Play Console account ($25 one-time), create a new app, upload the `.aab`, fill in store listing, submit.
+Your options:
 
-### Route B — Bubblewrap CLI (reproducible)
+1. **Custom domain** (recommended) — move Engram to `engram.app` via the CNAME instructions above, set `BASE_PATH=/`, and `public/.well-known/assetlinks.json` will then be served at the correct path.
+2. **User/org page** — if you rename the repo to `mavioni.github.io`, Engram becomes `https://mavioni.github.io/` (root), and the assetlinks file works. Only one user/org page per account.
+3. **Different static host** — back to Netlify / Cloudflare Pages / Vercel. All support `/.well-known/*` at the root for free.
+
+Once the verification file is at the right URL, the wrap flow is the same as before:
 
 ```bash
+# Route A — PWABuilder, zero local Android setup
+# Visit pwabuilder.com, paste your URL, click "Package For Stores → Android".
+
+# Route B — Bubblewrap, reproducible local build
 npm install -g @bubblewrap/cli
 bubblewrap init --manifest=https://engram.app/manifest.webmanifest
-bubblewrap build                  # produces app-release-signed.aab + fingerprint
+bubblewrap build
 ```
 
-Bubblewrap prints the SHA‑256 fingerprint after `bubblewrap build`. Paste it into `public/.well-known/assetlinks.json`, redeploy, then upload the `.aab` to Play Console.
-
-### Digital Asset Links — the two-step gotcha
-
-`public/.well-known/assetlinks.json` ships with a **placeholder** fingerprint. Until the file contains the real SHA‑256 from your signed Android build, Chrome will show its URL bar inside the TWA instead of running in fullscreen. This is an intentional Google check.
-
-**Order of operations:**
-
-1. Build + deploy the PWA.
-2. Generate your Android package (PWABuilder **or** Bubblewrap). This gives you the fingerprint.
-3. Paste the fingerprint into `public/.well-known/assetlinks.json` → `npm run build` → redeploy.
-4. Now submit to Play Store.
+Both routes print the signed keystore's SHA-256 fingerprint. Paste it into `public/.well-known/assetlinks.json` (replacing `PASTE_SHA256_FINGERPRINT_HERE_AFTER_FIRST_ANDROID_BUILD`), push, wait for Actions to redeploy, then submit the `.aab` to Play Console.
 
 ---
 
-## Optional: Supabase backend (auth + sync + Claude)
+## Auth, 2FA, and subscriptions
 
-Engram runs 100% offline without a backend. Add this when you want cross-device sync, magic-link auth, Claude insights, or Stripe billing.
+Engram ships a complete auth + subscription system on top of Supabase + Stripe. Everything is wired and routed; the only thing you have to do is paste in your keys and run the migrations.
+
+### Auth surface
+
+| Route | Screen | Notes |
+|---|---|---|
+| `/signin` | Sign in / Sign up / Magic link / Reset password | Mode tabs in one screen |
+| `/signin/2fa` | TOTP step-up challenge | Auto-redirected to after sign-in if 2FA enrolled |
+| `/account` | Account hub | Email, AAL, sign out, billing portal |
+| `/account/2fa` | 2FA enrollment | QR + manual secret + 6-digit verify |
+| `/pricing` | Subscription plans | **Auth-gated** — bounces to `/signin?next=/pricing` |
+| `/insights/chat` | Chat with your IRIS | **Auth-gated** |
+
+### What's protected by auth + 2FA
+
+- `/pricing`, `/account`, `/insights/chat` are wrapped in `<AuthGate>` (`src/components/AuthGate.jsx`).
+- AuthGate enforces three states:
+  1. **Supabase not configured** → renders an inline notice (no redirect — there's no backend to redirect to).
+  2. **Not signed in** → `Navigate` to `/signin?next=<original>` so the user lands back where they started after auth.
+  3. **Signed in with verified TOTP factor but not yet challenged** → `Navigate` to `/signin/2fa` to step up from AAL1 → AAL2.
+- The `useAuth()` hook (`src/lib/auth.js`) wraps Supabase's session, AAL, and factor list into one reactive context. It re-derives on every `onAuthStateChange` event.
+
+### 2FA implementation
+
+TOTP via Supabase's built-in MFA. Compatible with 1Password, Authy, Google Authenticator, Bitwarden, and any RFC 6238 authenticator.
+
+```
+src/features/auth/TwoFactorEnroll.jsx     # QR + manual secret + 6-digit verify
+src/features/auth/TwoFactorChallenge.jsx  # AAL1 → AAL2 step-up at sign-in
+src/lib/supabase.js                       # enrollTotp / verifyTotp / unenrollFactor / getAal / listFactors
+```
+
+The enroll screen calls `supabase.auth.mfa.enroll({ factorType: 'totp' })`, which returns an SVG QR-code data-URI ready to drop into an `<img>`. If the user navigates away mid-enroll, the `useEffect` cleanup unenrolls the half-baked factor so the user doesn't accumulate dangling unverified factors.
+
+### Wiring it up
+
+1. Create your Supabase project (see below). Set the env vars.
+2. Run the migration (`supabase/migrations/0001_init.sql`).
+3. In Supabase **Auth → Providers → Email**: enable Email + Password. Optionally enable Magic Link.
+4. In Supabase **Auth → MFA**: TOTP is enabled by default — confirm it's on.
+5. Deploy the Stripe edge functions (see Stripe section below).
+6. `npm run drop` → upload to Netlify. Visit `/signin`, create an account, enable 2FA from `/account`, click **Upgrade** → Stripe Checkout opens.
+
+### Stripe + auth gating together
+
+When a signed-in user clicks **Upgrade** on `/pricing`, the flow is:
+
+1. `Pricing.jsx` calls `startCheckout('monthly' | 'yearly')` from `src/lib/stripe.js`.
+2. That invokes the `stripe-checkout` edge function with the user's bearer token.
+3. The edge function reads `auth.uid()`, looks up or creates a Stripe customer (linked via `subscriptions.stripe_customer_id`), creates a Checkout Session, and returns the URL.
+4. The browser redirects to Stripe Checkout; on success, Stripe redirects back to `/you?checkout=success`.
+5. The `stripe-webhook` edge function receives `checkout.session.completed` and upserts `subscriptions.tier = 'pro'` for that user.
+6. Next time the app loads, the You / Account / Insights screens see `tier === 'pro'` and unlock unlimited Claude insights + chat.
+
+Because `Pricing` is wrapped in `<AuthGate>`, an unauthenticated user clicking **Upgrade** is bounced to `/signin?next=/pricing`. After they sign in (and pass 2FA if enrolled), the redirect takes them straight back to the pricing screen with one click left to checkout. No Stripe call is made until the user is fully authenticated and AAL2-cleared if MFA is on.
+
+---
+
+## Optional: Supabase backend setup
+
+Engram runs 100% offline without a backend. Add this when you want cross-device sync, accounts + 2FA, Claude insights, or Stripe billing.
 
 ### 1. Create a project
 
@@ -256,30 +336,33 @@ This repo ships the web path. The Play Store TWA will install fine; the Pricing 
 .
 ├── README.md                     ← you are here
 ├── LICENSE
-├── package.json, vite.config.js  ← build tooling
-├── netlify.toml                  ← deploy + security headers
-├── index.html                    ← Vite entry, meta tags, viewport
+├── package.json, vite.config.js  ← build tooling (vite.config reads BASE_PATH env)
+├── index.html                    ← Vite entry + SPA redirect decode script
 ├── .env.example                  ← env vars — all optional
+├── .github/workflows/
+│   └── deploy.yml                ← builds + publishes to GitHub Pages on push
 ├── scripts/
 │   └── gen-icons.mjs             ← rasterizes public/icon.svg → PNG
 ├── public/
 │   ├── icon.svg, favicon.svg     ← source
 │   ├── icon-{192,512,maskable-512}.png, apple-touch-icon.png  ← generated
+│   ├── 404.html                  ← GitHub Pages SPA redirect encode
 │   ├── robots.txt
 │   └── .well-known/
-│       └── assetlinks.json       ← TWA verification (placeholder until signed)
+│       └── assetlinks.json       ← TWA verification (needs custom domain on GH Pages)
 ├── src/
-│   ├── main.jsx, App.jsx         ← React entry + router
+│   ├── main.jsx, App.jsx         ← React entry + router (basename=BASE_URL)
 │   ├── styles/{global.css, tokens.js}
-│   ├── lib/                      ← ternary, time, store, supabase, claude, stripe
+│   ├── lib/                      ← ternary, time, store, supabase, auth, claude, stripe
 │   ├── data/                     ← moods, activities, note kinds
-│   ├── components/               ← Emoji, Screen, Button, Nav, Card, Empty, MoodPicker, ActivityPicker
+│   ├── components/               ← Emoji, Screen, Button, Nav, Card, Empty, MoodPicker, ActivityPicker, ErrorBoundary, AuthGate
 │   └── features/
 │       ├── iris/                 ← IRIS.jsx (the original), IrisRoute.jsx wrapper
 │       ├── home/                 ← Home dashboard
 │       ├── journal/              ← CheckIn, Journal
 │       ├── calendar/             ← Calendar heatmap
 │       ├── insights/             ← Insights + charts/*, Chat
+│       ├── auth/                 ← SignIn, TwoFactorEnroll, TwoFactorChallenge, Account
 │       ├── subscription/         ← Pricing
 │       └── profile/              ← You
 └── supabase/

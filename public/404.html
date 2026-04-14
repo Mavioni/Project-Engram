@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#06060e" />
+    <title>Engram</title>
+    <style>
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: #06060e;
+        color: #888899;
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+        display: grid;
+        place-items: center;
+      }
+      .mark {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 18px;
+        border-radius: 50%;
+        background: radial-gradient(circle,
+          rgba(255,209,102,0.55) 0%,
+          rgba(255,107,138,0.35) 40%,
+          rgba(126,181,255,0.25) 70%,
+          transparent 100%);
+        animation: p 1.8s ease-in-out infinite;
+      }
+      @keyframes p { 0%,100%{transform:scale(.9);opacity:.55} 50%{transform:scale(1.08);opacity:1} }
+      .label { font-size: 11px; letter-spacing: 0.32em; text-transform: uppercase; }
+    </style>
+    <!--
+      SPA GitHub Pages — encode the original path into the query
+      string and redirect to the base index.html, which runs the
+      matching decode script and hands control to React Router.
+      See rafgraph/spa-github-pages (MIT).
+
+      pathSegmentsToKeep = 1 because Engram is a project page
+      served under /<repo>/. For user pages (served at /) set to 0.
+    -->
+    <script>
+      (function () {
+        var pathSegmentsToKeep = 1;
+        var l = window.location;
+        l.replace(
+          l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+          l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+          l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          l.hash
+        );
+      })();
+    </script>
+  </head>
+  <body>
+    <div style="text-align:center">
+      <div class="mark"></div>
+      <div class="label">Engram</div>
+    </div>
+  </body>
+</html>

@@ -28,19 +28,127 @@
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- manifest link injected by vite-plugin-pwa -->
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <!--
+      Google Fonts — loaded async via the preload+onload pattern so the
+      browser's load event is never blocked on fonts.googleapis.com. On
+      slow networks the user sees Georgia fallback first, then the
+      Cormorant Garamond / DM Mono swap in. This is intentional.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Mono:wght@300;400;500&display=swap"
-      rel="stylesheet"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Mono:wght@300;400;500&display=swap"
+      />
+    </noscript>
 
     <title>Engram — Catalog Yourself</title>
+
+    <!--
+      Inline boot styles — must work with ZERO network dependencies so
+      the user always sees something on first paint, even if every CDN
+      is slow.
+    -->
+    <style>
+      html, body, #root {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: #06060e;
+        color: #e6e6f0;
+        font-family: Georgia, 'Times New Roman', serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      #engram-boot {
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(circle at 20% 0%, rgba(126,181,255,0.08), transparent 55%),
+          radial-gradient(circle at 80% 100%, rgba(255,107,138,0.06), transparent 55%),
+          #06060e;
+      }
+      #engram-boot__inner { text-align: center; }
+      #engram-boot__mark {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 18px;
+        border-radius: 50%;
+        background: radial-gradient(circle,
+          rgba(255,209,102,0.55) 0%,
+          rgba(255,107,138,0.35) 40%,
+          rgba(126,181,255,0.25) 70%,
+          transparent 100%);
+        box-shadow: 0 0 40px rgba(255,209,102,0.25);
+        animation: engramPulse 1.8s ease-in-out infinite;
+      }
+      #engram-boot__label {
+        font-size: 11px;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: #888899;
+        font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      }
+      #engram-boot__sub {
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        color: #444455;
+        margin-top: 8px;
+        font-style: italic;
+        font-family: Georgia, serif;
+      }
+      @keyframes engramPulse {
+        0%, 100% { transform: scale(0.9); opacity: 0.55; }
+        50%      { transform: scale(1.08); opacity: 1; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <!--
+      SPA redirect decode — must run BEFORE React mounts so the
+      router sees the real URL. GitHub Pages has no server-side
+      rewrites; the 404.html fallback encodes the original path
+      into the query string, and this script restores it with
+      history.replaceState so React Router picks it up.
+      See rafgraph/spa-github-pages (MIT).
+    -->
+    <script>
+      (function (l) {
+        if (l.search[1] === '/') {
+          var decoded = l.search
+            .slice(1)
+            .split('&')
+            .map(function (s) { return s.replace(/~and~/g, '&'); })
+            .join('?');
+          window.history.replaceState(
+            null,
+            null,
+            l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location));
+    </script>
+
+    <div id="root">
+      <div id="engram-boot" role="status" aria-live="polite">
+        <div id="engram-boot__inner">
+          <div id="engram-boot__mark"></div>
+          <div id="engram-boot__label">Engram</div>
+          <div id="engram-boot__sub">catalog yourself</div>
+        </div>
+      </div>
+    </div>
+
     <noscript>
       <div
         style="
@@ -55,6 +163,55 @@
         Engram needs JavaScript to render your catalog. Please enable it.
       </div>
     </noscript>
+
+    <!--
+      Safety net: if the main module fails to load (bad chunk name,
+      Netlify served the wrong file, corporate filter blocked it, etc.)
+      surface the actual error so the user sees *what* broke instead of
+      a silent loading spinner.
+    -->
+    <script>
+      (function () {
+        var shown = false;
+        function showError(msg) {
+          if (shown) return;
+          shown = true;
+          var root = document.getElementById('root');
+          if (!root) return;
+          root.innerHTML =
+            '<div style="min-height:100vh;min-height:100dvh;padding:40px 24px;background:#06060e;color:#e6e6f0;font-family:Georgia,serif;display:flex;align-items:center;justify-content:center">' +
+              '<div style="max-width:420px;text-align:center">' +
+                '<div style="font-family:ui-monospace,monospace;font-size:10px;letter-spacing:0.28em;text-transform:uppercase;color:#ff6b6b;margin-bottom:12px">Load failed</div>' +
+                '<h1 style="font-size:24px;font-weight:300;margin:0 0 12px;color:#fff">Engram couldn\'t start</h1>' +
+                '<pre style="font-family:ui-monospace,monospace;font-size:11px;line-height:1.5;color:#888;white-space:pre-wrap;text-align:left;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:14px;margin:16px 0">' +
+                  String(msg).replace(/</g, '&lt;') +
+                '</pre>' +
+                '<button onclick="location.reload(true)" style="padding:12px 28px;margin-top:8px;font-family:ui-monospace,monospace;font-size:11px;letter-spacing:0.25em;text-transform:uppercase;background:transparent;color:#ffd166;border:1px solid rgba(255,209,102,0.4);border-radius:4px;cursor:pointer">Reload</button>' +
+              '</div>' +
+            '</div>';
+        }
+        window.addEventListener('error', function (e) {
+          var isResource = e.target && e.target !== window && (e.target.src || e.target.href);
+          if (isResource) {
+            showError('Failed to load resource:\n' + (e.target.src || e.target.href));
+          } else if (e.message) {
+            showError(e.message);
+          }
+        }, true);
+        // If nothing has replaced the boot indicator after 20 seconds,
+        // prompt the user to reload.
+        setTimeout(function () {
+          var boot = document.getElementById('engram-boot');
+          if (boot && boot.parentElement) {
+            var sub = document.getElementById('engram-boot__sub');
+            if (sub) sub.textContent = 'Still loading… tap to reload';
+            boot.style.cursor = 'pointer';
+            boot.addEventListener('click', function () { location.reload(true); });
+          }
+        }, 20000);
+      })();
+    </script>
+
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
