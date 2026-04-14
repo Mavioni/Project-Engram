@@ -102,7 +102,7 @@ export default function Chat() {
           title="Run IRIS first"
           body="Chat needs your 24 facet scores to write in your voice. The simulation is 16 questions, ~4 minutes."
           action={
-            <Button variant="solid" tone="#b197fc" onClick={() => navigate('/iris')}>
+            <Button variant="solid" tone="#b197fc" onClick={() => navigate('/')}>
               Begin IRIS
             </Button>
           }

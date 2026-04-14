@@ -69,13 +69,17 @@ export default function App() {
         <Suspense fallback={<LazyFallback />}>
           {/* key on pathname re-triggers the Screen fade-in on every route change */}
           <Routes location={location} key={location.pathname}>
-            {/* Public routes — work fully offline */}
-            <Route path="/" element={<Home />} />
+            {/* IRIS v4 is the site's front door: landing / coliseum /
+                assessment / results / Player Card export. From here
+                the user transfers to /home (the extended Engram app). */}
+            <Route path="/" element={<IrisRoute />} />
+
+            {/* Extended site — the "after IRIS" experience */}
+            <Route path="/home" element={<Home />} />
             <Route path="/journal" element={<Journal />} />
             <Route path="/journal/checkin" element={<CheckIn />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/insights" element={<Insights />} />
-            <Route path="/iris" element={<IrisRoute />} />
             <Route path="/you" element={<You />} />
 
             {/* Auth flow */}

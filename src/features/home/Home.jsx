@@ -296,7 +296,7 @@ export default function Home() {
                 24 facets. 16 crucible scenarios. A living artifact of who you are —
                 and the map Engram uses to write insights in your voice.
               </p>
-              <Button variant="solid" tone="#b197fc" onClick={() => navigate('/iris')}>
+              <Button variant="solid" tone="#b197fc" onClick={() => navigate('/')}>
                 Begin the simulation
               </Button>
             </div>

@@ -1,44 +1,48 @@
 // ─────────────────────────────────────────────────────────────
-// IrisRoute — wraps the legacy IRIS component and wires its
-// onComplete callback into the Zustand store.
+// IrisRoute — the route wrapper for IRIS v4.
+// ─────────────────────────────────────────────────────────────
+// IRIS is mounted at `/` (the entry experience), so this
+// wrapper handles:
+//   - Lazy-loading the heavy Three.js bundle
+//   - Persisting results to Zustand via saveIrisResults
+//   - Providing the "Enter Engram →" handoff button that
+//     transfers the user to /home (the extended dashboard)
 // ─────────────────────────────────────────────────────────────
 
-import { Suspense, lazy, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Suspense, lazy, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../lib/store.js';
 
-// Lazy-load — Three.js is ~600 KB, keep it off the critical path.
+// Three.js is ~600 KB. Keep it off the critical path.
 const IRISApp = lazy(() => import('./IRIS.jsx'));
 
 export default function IrisRoute() {
   const navigate = useNavigate();
-  const [params] = useSearchParams();
   const saveIrisResults = useStore((s) => s.saveIrisResults);
-  const hasIris = useStore((s) => Boolean(s.iris.enneagramType));
 
-  // Allow deep-linking straight into the assessment.
-  const initialPhase = params.get('start') === '1' || hasIris ? 'assess' : 'landing';
-
-  const onComplete = useMemo(
-    () => (results) => {
+  const onComplete = useCallback(
+    (results) => {
       saveIrisResults(results);
     },
     [saveIrisResults],
   );
 
-  const onExit = () => navigate('/');
+  const onExit = useCallback(() => {
+    navigate('/home');
+  }, [navigate]);
 
   return (
     <Suspense
       fallback={
         <div
           style={{
-            flex: 1,
+            minHeight: '100vh',
             display: 'grid',
             placeItems: 'center',
-            color: 'var(--ink-dim)',
-            fontFamily: 'var(--mono)',
-            fontSize: 11,
+            color: '#555',
+            background: '#06060e',
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 10,
             letterSpacing: '0.3em',
             textTransform: 'uppercase',
           }}
@@ -47,7 +51,7 @@ export default function IrisRoute() {
         </div>
       }
     >
-      <IRISApp onComplete={onComplete} onExit={onExit} initialPhase={initialPhase} />
+      <IRISApp onComplete={onComplete} onExit={onExit} initialPhase="landing" />
     </Suspense>
   );
 }

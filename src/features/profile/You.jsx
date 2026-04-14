@@ -316,7 +316,7 @@ export default function You() {
               Taken {iris.takenAt ? new Date(iris.takenAt).toLocaleDateString() : '—'}
             </div>
             <div style={{ marginTop: 16, display: 'flex', justifyContent: 'center', gap: 10 }}>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/iris')}>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
                 Re-run IRIS
               </Button>
             </div>
@@ -373,7 +373,7 @@ export default function You() {
           >
             24 facets. 16 scenarios. The map Engram uses to write insights in your voice.
           </p>
-          <Button variant="solid" tone="#b197fc" onClick={() => navigate('/iris')}>
+          <Button variant="solid" tone="#b197fc" onClick={() => navigate('/')}>
             Begin
           </Button>
         </Card>
