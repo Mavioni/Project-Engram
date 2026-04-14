@@ -13,6 +13,12 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Do NOT inline a blocking <script src="/registerSW.js"> into
+      // index.html — src/main.jsx imports `virtual:pwa-register` and
+      // calls it inside window.addEventListener('load', ...) so the
+      // SW install never competes with the main bundle for bandwidth
+      // on first paint.
+      injectRegister: false,
       includeAssets: [
         'favicon.svg',
         'apple-touch-icon.png',
