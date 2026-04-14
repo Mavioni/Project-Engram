@@ -159,9 +159,69 @@ Bubblewrap prints the SHA‑256 fingerprint after `bubblewrap build`. Paste it i
 
 ---
 
-## Optional: Supabase backend (auth + sync + Claude)
+## Auth, 2FA, and subscriptions
 
-Engram runs 100% offline without a backend. Add this when you want cross-device sync, magic-link auth, Claude insights, or Stripe billing.
+Engram ships a complete auth + subscription system on top of Supabase + Stripe. Everything is wired and routed; the only thing you have to do is paste in your keys and run the migrations.
+
+### Auth surface
+
+| Route | Screen | Notes |
+|---|---|---|
+| `/signin` | Sign in / Sign up / Magic link / Reset password | Mode tabs in one screen |
+| `/signin/2fa` | TOTP step-up challenge | Auto-redirected to after sign-in if 2FA enrolled |
+| `/account` | Account hub | Email, AAL, sign out, billing portal |
+| `/account/2fa` | 2FA enrollment | QR + manual secret + 6-digit verify |
+| `/pricing` | Subscription plans | **Auth-gated** — bounces to `/signin?next=/pricing` |
+| `/insights/chat` | Chat with your IRIS | **Auth-gated** |
+
+### What's protected by auth + 2FA
+
+- `/pricing`, `/account`, `/insights/chat` are wrapped in `<AuthGate>` (`src/components/AuthGate.jsx`).
+- AuthGate enforces three states:
+  1. **Supabase not configured** → renders an inline notice (no redirect — there's no backend to redirect to).
+  2. **Not signed in** → `Navigate` to `/signin?next=<original>` so the user lands back where they started after auth.
+  3. **Signed in with verified TOTP factor but not yet challenged** → `Navigate` to `/signin/2fa` to step up from AAL1 → AAL2.
+- The `useAuth()` hook (`src/lib/auth.js`) wraps Supabase's session, AAL, and factor list into one reactive context. It re-derives on every `onAuthStateChange` event.
+
+### 2FA implementation
+
+TOTP via Supabase's built-in MFA. Compatible with 1Password, Authy, Google Authenticator, Bitwarden, and any RFC 6238 authenticator.
+
+```
+src/features/auth/TwoFactorEnroll.jsx     # QR + manual secret + 6-digit verify
+src/features/auth/TwoFactorChallenge.jsx  # AAL1 → AAL2 step-up at sign-in
+src/lib/supabase.js                       # enrollTotp / verifyTotp / unenrollFactor / getAal / listFactors
+```
+
+The enroll screen calls `supabase.auth.mfa.enroll({ factorType: 'totp' })`, which returns an SVG QR-code data-URI ready to drop into an `<img>`. If the user navigates away mid-enroll, the `useEffect` cleanup unenrolls the half-baked factor so the user doesn't accumulate dangling unverified factors.
+
+### Wiring it up
+
+1. Create your Supabase project (see below). Set the env vars.
+2. Run the migration (`supabase/migrations/0001_init.sql`).
+3. In Supabase **Auth → Providers → Email**: enable Email + Password. Optionally enable Magic Link.
+4. In Supabase **Auth → MFA**: TOTP is enabled by default — confirm it's on.
+5. Deploy the Stripe edge functions (see Stripe section below).
+6. `npm run drop` → upload to Netlify. Visit `/signin`, create an account, enable 2FA from `/account`, click **Upgrade** → Stripe Checkout opens.
+
+### Stripe + auth gating together
+
+When a signed-in user clicks **Upgrade** on `/pricing`, the flow is:
+
+1. `Pricing.jsx` calls `startCheckout('monthly' | 'yearly')` from `src/lib/stripe.js`.
+2. That invokes the `stripe-checkout` edge function with the user's bearer token.
+3. The edge function reads `auth.uid()`, looks up or creates a Stripe customer (linked via `subscriptions.stripe_customer_id`), creates a Checkout Session, and returns the URL.
+4. The browser redirects to Stripe Checkout; on success, Stripe redirects back to `/you?checkout=success`.
+5. The `stripe-webhook` edge function receives `checkout.session.completed` and upserts `subscriptions.tier = 'pro'` for that user.
+6. Next time the app loads, the You / Account / Insights screens see `tier === 'pro'` and unlock unlimited Claude insights + chat.
+
+Because `Pricing` is wrapped in `<AuthGate>`, an unauthenticated user clicking **Upgrade** is bounced to `/signin?next=/pricing`. After they sign in (and pass 2FA if enrolled), the redirect takes them straight back to the pricing screen with one click left to checkout. No Stripe call is made until the user is fully authenticated and AAL2-cleared if MFA is on.
+
+---
+
+## Optional: Supabase backend setup
+
+Engram runs 100% offline without a backend. Add this when you want cross-device sync, accounts + 2FA, Claude insights, or Stripe billing.
 
 ### 1. Create a project
 
