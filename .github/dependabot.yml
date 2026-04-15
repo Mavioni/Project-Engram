@@ -1,0 +1,23 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      react:
+        patterns: ['react', 'react-*', '@types/react*']
+      vite:
+        patterns: ['vite', '@vitejs/*', 'vite-plugin-*']
+      supabase:
+        patterns: ['@supabase/*']
+      dev-tooling:
+        patterns: ['eslint*', 'prettier', 'sharp']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
