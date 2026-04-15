@@ -21,7 +21,7 @@
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.14.1",
-    "recharts": "^2.12.7",
+    "recharts": "^3.8.1",
     "three": "^0.169.0",
     "zustand": "^4.5.5"
   },
