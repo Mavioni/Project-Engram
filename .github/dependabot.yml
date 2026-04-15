@@ -6,6 +6,19 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    # Version ceilings for packages blocked by ecosystem peers.
+    # Revisit these when the named downstream dep releases support.
+    ignore:
+      # vite-plugin-pwa@1.2.0 only supports vite up to ^7.
+      - dependency-name: vite
+        versions: ['>=8']
+      - dependency-name: '@vitejs/plugin-react'
+        versions: ['>=7']
+      # eslint-plugin-react@7.37.5 only supports eslint up to ^9.7.
+      - dependency-name: eslint
+        versions: ['>=10']
+      - dependency-name: '@eslint/js'
+        versions: ['>=10']
     groups:
       react:
         patterns: ['react', 'react-*', '@types/react*']
