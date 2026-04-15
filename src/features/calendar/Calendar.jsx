@@ -19,7 +19,11 @@ import { dayKey, monthGrid, prettyDate } from '../../lib/time.js';
 
 export default function Calendar() {
   const navigate = useNavigate();
-  const byDay = useStore(selectEntriesByDay);
+  // zustand 5 uses Object.is by default — selectEntriesByDay allocates a new
+  // Map each call, so subscribing through useStore rerenders forever. Pull raw
+  // entries and memoize the Map per-component instead.
+  const entries = useStore((s) => s.entries);
+  const byDay = useMemo(() => selectEntriesByDay({ entries }), [entries]);
   const [anchor, setAnchor] = useState(() => startOfToday());
   const [selected, setSelected] = useState(() => startOfToday());
 

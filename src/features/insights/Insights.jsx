@@ -53,7 +53,8 @@ export default function Insights() {
   const consumeAiCredit = useStore((s) => s.useAiCredit);
 
   const days = useMemo(() => last(windowDays), [windowDays]);
-  const byDay = useStore(selectEntriesByDay);
+  // Memoize per-render instead of subscribing — see zustand 5 note above.
+  const byDay = useMemo(() => selectEntriesByDay({ entries }), [entries]);
   const moodSeries = useMemo(
     () => selectMoodSeries({ entries }, days),
     [entries, days],

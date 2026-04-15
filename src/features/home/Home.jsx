@@ -35,7 +35,10 @@ export default function Home() {
   const iris = useStore((s) => s.iris);
   const entries = useStore((s) => s.entries);
   const today = useStore(selectTodayEntry);
-  const recent = useStore((s) => selectLastN(s, 7));
+  // `selectLastN` allocates a new array each call — safe in zustand 4's loose
+  // equality, but triggers an infinite re-render loop under zustand 5's
+  // Object.is default. Memoize against the raw `entries` subscription instead.
+  const recent = useMemo(() => selectLastN({ entries }, 7), [entries]);
   const totalNotes = useStore(selectTotalNoteCount);
 
   const streak = useMemo(() => currentStreak(entries), [entries]);
