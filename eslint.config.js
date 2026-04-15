@@ -3,6 +3,20 @@ import globals from 'globals';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 
+// Vitest globals (describe/it/expect/beforeEach/vi) — inlined so we
+// don't need the `vitest` eslint plugin just for name resolution.
+const vitestGlobals = {
+  describe: 'readonly',
+  it: 'readonly',
+  test: 'readonly',
+  expect: 'readonly',
+  beforeEach: 'readonly',
+  afterEach: 'readonly',
+  beforeAll: 'readonly',
+  afterAll: 'readonly',
+  vi: 'readonly',
+};
+
 // ESLint 9 flat config.
 // Engram is all .jsx (no TypeScript), React 18, Vite, browser + service worker runtime.
 // Keep this strict enough to catch real bugs but not so noisy that `--max-warnings=0`
@@ -71,6 +85,14 @@ export default [
     files: ['vite.config.js', '*.config.js', '*.config.mjs'],
     languageOptions: {
       globals: { ...globals.node },
+    },
+  },
+
+  // Test files — add vitest globals + allow unused args in fixtures.
+  {
+    files: ['src/**/*.{test,spec}.{js,jsx}', 'src/test/**/*.{js,jsx}'],
+    languageOptions: {
+      globals: { ...globals.browser, ...vitestGlobals },
     },
   },
 ];

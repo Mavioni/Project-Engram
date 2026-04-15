@@ -1,4 +1,5 @@
-import { defineConfig } from 'vite';
+/// <reference types="vitest" />
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -110,5 +111,14 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+  },
+  test: {
+    environment: 'happy-dom',
+    globals: true,
+    setupFiles: ['./src/test/setup.js'],
+    // Only pick up co-located *.test.js(x) + tests under src/test — keep
+    // build-adjacent files (vite.config.js, eslint.config.js) out of the run.
+    include: ['src/**/*.{test,spec}.{js,jsx}'],
+    css: false, // skip CSS parsing in tests — we don't assert on styles
   },
 });

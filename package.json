@@ -13,7 +13,9 @@
     "icons": "node scripts/gen-icons.mjs",
     "prebuild": "node scripts/gen-icons.mjs",
     "lint": "eslint src --max-warnings=0",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "vitest",
+    "test:ci": "vitest run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.1",
@@ -27,6 +29,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.2.0",
@@ -34,10 +39,12 @@
     "eslint-plugin-react": "^7.37.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "globals": "^17.5.0",
+    "happy-dom": "^20.9.0",
     "prettier": "^3.8.3",
     "sharp": "^0.34.5",
     "vite": "^7.3.2",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.1.4"
   },
   "engines": {
     "node": ">=20"

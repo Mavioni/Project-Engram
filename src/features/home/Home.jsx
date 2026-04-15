@@ -25,7 +25,7 @@ import {
   selectLastN,
   selectTotalNoteCount,
 } from '../../lib/store.js';
-import { moodById } from '../../data/moods.js';
+import { moodByScore } from '../../data/moods.js';
 import { ALL_ACTIVITIES } from '../../data/activities.js';
 import { greeting, prettyDate, currentStreak } from '../../lib/time.js';
 
@@ -44,7 +44,9 @@ export default function Home() {
   const streak = useMemo(() => currentStreak(entries), [entries]);
   const totalDays = entries.length;
 
-  const todayMood = today && moodById(today.mood);
+  // `today.mood` is stored as a numeric score in [0,1] (CheckIn writes
+  // `mood.score`), so look it up by score, not by id.
+  const todayMood = today ? moodByScore(today.mood) : null;
 
   return (
     <Screen
