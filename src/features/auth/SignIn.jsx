@@ -7,7 +7,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Screen from '../../components/Screen.jsx';
 import Card from '../../components/Card.jsx';
 import Button from '../../components/Button.jsx';

@@ -62,7 +62,9 @@ export default function App() {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          minHeight: '100vh',
+          // 100dvh falls back in browsers without dvh support via the
+          // outer layout; older `100vh` fallback had to go because it
+          // duplicated the key in an inline style object.
           minHeight: '100dvh',
         }}
       >

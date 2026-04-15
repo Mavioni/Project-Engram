@@ -15,8 +15,6 @@ import Emoji from '../../components/Emoji.jsx';
 import {
   Divider,
   SeedOfLife,
-  VesicaPiscis,
-  GoldenSpiral,
   EnneagramGlyph,
 } from '../../components/SacredGeometry.jsx';
 import MoodTrend from './charts/MoodTrend.jsx';
@@ -50,7 +48,9 @@ export default function Insights() {
   const subscription = useStore((s) => s.subscription);
   const insights = useStore((s) => s.insights);
   const cacheInsight = useStore((s) => s.cacheInsight);
-  const useAiCredit = useStore((s) => s.useAiCredit);
+  // Aliased away from the `use` prefix — it's a store action, not a React hook,
+  // and the naming collision makes react-hooks/rules-of-hooks fire.
+  const consumeAiCredit = useStore((s) => s.useAiCredit);
 
   const days = useMemo(() => last(windowDays), [windowDays]);
   const byDay = useStore(selectEntriesByDay);
@@ -76,7 +76,7 @@ export default function Insights() {
     try {
       const result = await requestInsight({ kind, windowDays });
       cacheInsight({ kind, content: result.content, model: result.model, windowDays });
-      if (!isPro) useAiCredit();
+      if (!isPro) consumeAiCredit();
     } catch (e) {
       setError(e.message || 'Failed to generate insight.');
     } finally {

@@ -260,7 +260,7 @@ export default function TwoFactorEnroll() {
           lineHeight: 1.7,
         }}
       >
-        Once enabled, you'll need a code from your authenticator
+        Once enabled, you&rsquo;ll need a code from your authenticator
         every time you sign in.
       </div>
     </Screen>

@@ -53,7 +53,7 @@ const initialSubscription = () => ({
 
 export const useStore = create(
   persist(
-    (set, get) => ({
+    (set, _get) => ({
       schemaVersion: SCHEMA_VERSION,
       profile: initialProfile(),
       iris: initialIris(),

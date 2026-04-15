@@ -390,7 +390,7 @@ export function Merkaba({
   const r = 38;
   const up = Array.from({ length: 3 }, (_, i) => polar(r, -Math.PI / 2 + (i / 3) * TAU));
   const down = Array.from({ length: 3 }, (_, i) => polar(r, Math.PI / 2 + (i / 3) * TAU));
-  const toPath = (arr) =>
+  const _toPath = (arr) =>
     ['M', ...arr, arr[0], 'Z']
       .map((p) => (typeof p === 'string' ? p : `${fmt(p[0])},${fmt(p[1])}`))
       .join(' ')

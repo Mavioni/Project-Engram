@@ -43,7 +43,7 @@ if ('serviceWorker' in navigator) {
       })
       .catch((err) => {
         // Non-fatal — the app runs fine without a SW, just no offline.
-        // eslint-disable-next-line no-console
+         
         console.warn('[Engram] SW registration skipped:', err);
       });
   });

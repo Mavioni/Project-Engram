@@ -38,7 +38,7 @@ export default function Emoji({
       // must not compete with critical bundle JS/CSS. Emoji are
       // chrome, not content — letting the main bundle win the
       // bandwidth race keeps first-paint fast.
-      fetchpriority="low"
+      fetchPriority="low"
       className={className}
       style={{
         width: size,

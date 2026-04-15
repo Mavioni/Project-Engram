@@ -12,7 +12,7 @@ import Button from '../../components/Button.jsx';
 import Emoji from '../../components/Emoji.jsx';
 import { SeedOfLife } from '../../components/SacredGeometry.jsx';
 import { useStore, selectEntriesByDay } from '../../lib/store.js';
-import { MOODS, moodById, moodByScore } from '../../data/moods.js';
+import { MOODS, moodByScore } from '../../data/moods.js';
 import { ALL_ACTIVITIES } from '../../data/activities.js';
 import { noteKindById } from '../../data/notekinds.js';
 import { dayKey, monthGrid, prettyDate } from '../../lib/time.js';

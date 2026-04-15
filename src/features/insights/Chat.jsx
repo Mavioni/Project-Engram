@@ -21,7 +21,6 @@ export default function Chat() {
   const threads = useStore((s) => s.chatThreads);
   const startChatThread = useStore((s) => s.startChatThread);
   const appendChatMessage = useStore((s) => s.appendChatMessage);
-  const subscription = useStore((s) => s.subscription);
 
   const [activeId, setActiveId] = useState(threads[0]?.id || null);
   const [input, setInput] = useState('');

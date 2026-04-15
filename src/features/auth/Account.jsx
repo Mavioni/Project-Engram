@@ -129,7 +129,7 @@ export default function Account() {
                 fontSize: 13,
               }}
             >
-              You'll need a code from your authenticator on every sign-in.
+              You&rsquo;ll need a code from your authenticator on every sign-in.
             </p>
             <Button variant="danger" size="sm" onClick={doDisable2fa} disabled={busy === 'disable2fa'}>
               {busy === 'disable2fa' ? 'Disabling…' : 'Disable 2FA'}
