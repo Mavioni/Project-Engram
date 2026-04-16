@@ -86,9 +86,10 @@ Tomorrow, a new challenge seeds automatically.
 
 Natural places to go next, pre-sketched in `IDEAS.md`:
 
-- **Archetype-colored Dashboard tint** — ambient backdrop picks up your type's color
 - **Engram evolution from journals** — shadow tag usage → +shadow facet over time
 - **Engram vs. Engram battles** (real, multiplayer) — requires backend + matchmaking
 - **Badges / achievements** — streaks, battles, rituals
+
+Already shipped: the ambient backdrop now tints with your archetype's color once IRIS is complete (see `docs/theme.md` → Backdrop tint).
 
 All of these sit behind new data-model changes; the game mechanics scale cleanly.

@@ -10,6 +10,9 @@
 <!-- AUTO:log -->
 ## 2026-04-21
 
+- `9809a4f` docs(vision): canonical VISION.md aligned with real product
+- `8378398` feat(self-mirror): encrypted local-first reflection surface at /insights/self-mirror
+- `f256830` fix(auth): satisfy react-hooks/set-state-in-effect after plugin bump
 - `c3b8f16` Build(deps): bump @supabase/supabase-js in the supabase group (#21)
 - `dd49f80` Build(deps-dev): bump eslint-plugin-react-hooks in the dev-tooling group (#22)
 - `f7480cb` Build(deps): bump three from 0.183.2 to 0.184.0 (#23)
