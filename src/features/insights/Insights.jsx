@@ -131,7 +131,7 @@ export default function Insights() {
               border: `1px solid ${
                 windowDays === w.id ? 'var(--border-strong)' : 'var(--border)'
               }`,
-              background: windowDays === w.id ? 'rgba(255,255,255,0.05)' : 'transparent',
+              background: windowDays === w.id ? 'var(--bg-raised)' : 'transparent',
               color: windowDays === w.id ? 'var(--ink)' : 'var(--ink-dim)',
               fontSize: 10,
               letterSpacing: '0.22em',

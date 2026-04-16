@@ -120,8 +120,8 @@ Combat logic is deterministic (seeded PRNG) and pure — see `src/features/engra
 |---|---|
 | Version | `0.1.0` |
 | Node | `>=20` |
-| Test files | 5 |
-| Test cases | 58 |
+| Test files | 6 |
+| Test cases | 72 |
 | Last doc sync | 2026-04-16 |
 <!-- /AUTO:stats -->
 

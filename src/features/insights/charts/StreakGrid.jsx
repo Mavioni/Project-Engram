@@ -36,9 +36,9 @@ export default function StreakGrid({ byDay, weeks = 14 }) {
                   width: 14,
                   height: 14,
                   borderRadius: 3,
-                  background: mood ? mood.color : 'rgba(255,255,255,0.035)',
+                  background: mood ? mood.color : 'var(--bg-raised)',
                   opacity: mood ? 0.85 : 1,
-                  border: '1px solid rgba(255,255,255,0.04)',
+                  border: '1px solid var(--border)',
                 }}
               />
             );

@@ -15,8 +15,9 @@ import ActivityPicker from '../../components/ActivityPicker.jsx';
 import Card from '../../components/Card.jsx';
 import { VesicaPiscis } from '../../components/SacredGeometry.jsx';
 import { NOTE_KINDS } from '../../data/notekinds.js';
-import { moodById } from '../../data/moods.js';
+import { moodById, moodByScore } from '../../data/moods.js';
 import { useStore, selectTodayEntry } from '../../lib/store.js';
+import { XP } from '../engram/rewards.js';
 
 const STEPS = ['mood', 'activities', 'note'];
 
@@ -24,9 +25,12 @@ export default function CheckIn() {
   const navigate = useNavigate();
   const today = useStore(selectTodayEntry);
   const upsertEntry = useStore((s) => s.upsertEntry);
+  const awardXp = useStore((s) => s.awardXp);
 
+  // `today.mood` is a numeric score in [0,1], not an id — look it
+  // up by score so an existing entry pre-selects the right mood.
   const [step, setStep] = useState(0);
-  const [moodId, setMoodId] = useState(today ? moodById(today.mood)?.id : null);
+  const [moodId, setMoodId] = useState(today ? moodByScore(today.mood)?.id : null);
   const [activities, setActivities] = useState(today?.activities || []);
   const [noteKind, setNoteKind] = useState('reflection');
   const [noteText, setNoteText] = useState('');
@@ -37,13 +41,22 @@ export default function CheckIn() {
   const back = () => (step === 0 ? navigate(-1) : setStep((s) => s - 1));
 
   const complete = () => {
+    const hasNote = !!noteText.trim();
+    // Only the first check-in of the day awards the base XP — keeps
+    // users from farming XP by re-saving the same day's entry.
+    const wasAlreadyLoggedToday = !!today;
     upsertEntry({
       mood: mood?.score ?? 0.5,
       activities,
-      note: noteText.trim()
-        ? { kind: noteKind, text: noteText.trim() }
-        : null,
+      note: hasNote ? { kind: noteKind, text: noteText.trim() } : null,
     });
+    if (!wasAlreadyLoggedToday) {
+      awardXp(XP.checkIn);
+      if (hasNote) awardXp(XP.note);
+    } else if (hasNote) {
+      // Editing an existing entry to add a note still counts.
+      awardXp(XP.note);
+    }
     navigate('/');
   };
 
@@ -82,7 +95,7 @@ export default function CheckIn() {
       <div
         style={{
           height: 2,
-          background: 'rgba(255,255,255,0.05)',
+          background: 'var(--bg-raised)',
           borderRadius: 1,
           overflow: 'hidden',
           marginBottom: 24,

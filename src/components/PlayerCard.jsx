@@ -22,6 +22,7 @@ import {
 import { useStore } from '../lib/store.js';
 import {
   DOMAINS,
+  TYPES,
   getType,
   getDomainAvg,
   getWing,
@@ -31,12 +32,16 @@ import {
 
 export default function PlayerCard({ onDownload }) {
   const iris = useStore((s) => s.iris);
+  const engram = useStore((s) => s.engram);
   const { facetScores, enneagramType, enneagramScores, takenAt } = iris;
 
   if (!enneagramType || !facetScores) return null;
 
   const t = getType(enneagramType);
   if (!t) return null;
+
+  const defeated = new Set(engram?.defeated || []);
+  const totalSeals = defeated.size;
 
   const wing = getWing(enneagramType, enneagramScores);
   const percentile = getPercentile(enneagramType);
@@ -121,8 +126,8 @@ export default function PlayerCard({ onDownload }) {
           <h2
             style={{
               fontSize: 24,
-              fontWeight: 300,
-              color: '#fff',
+              fontWeight: 400,
+              color: 'var(--ink)',
               letterSpacing: '0.08em',
               margin: '8px 0 2px',
             }}
@@ -183,9 +188,9 @@ export default function PlayerCard({ onDownload }) {
                 style={{
                   textAlign: 'center',
                   padding: '10px 6px',
-                  background: 'rgba(255,255,255,0.025)',
+                  background: 'var(--bg-raised)',
                   borderRadius: 8,
-                  border: '1px solid rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border)',
                 }}
               >
                 <div
@@ -242,7 +247,7 @@ export default function PlayerCard({ onDownload }) {
               style={{
                 flex: 1,
                 height: 5,
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--border)',
                 borderRadius: 3,
                 overflow: 'hidden',
               }}
@@ -321,6 +326,63 @@ export default function PlayerCard({ onDownload }) {
               </div>
             ))}
           </div>
+        </div>
+
+        <Divider color={t.color} opacity={0.3} glyph="merkaba" glyphSize={18} margin="16px 0" />
+
+        {/* ── Seals (defeated archetypes) ── */}
+        <div
+          className="mono"
+          style={{
+            fontSize: 8,
+            letterSpacing: '0.26em',
+            color: 'var(--ink-dim)',
+            textTransform: 'uppercase',
+            textAlign: 'center',
+            marginBottom: 10,
+          }}
+        >
+          Seals {totalSeals > 0 ? `· ${totalSeals} / 9` : '· none yet'}
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 6,
+            marginBottom: 14,
+            flexWrap: 'wrap',
+          }}
+        >
+          {Object.entries(TYPES).map(([num, meta]) => {
+            const n = parseInt(num, 10);
+            const claimed = defeated.has(n);
+            return (
+              <div
+                key={num}
+                title={`${meta.name}${claimed ? ' · sealed' : ''}`}
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: '50%',
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontSize: 13,
+                  color: claimed ? meta.color : 'var(--ink-faint)',
+                  background: claimed
+                    ? `color-mix(in srgb, ${meta.color} 15%, transparent)`
+                    : 'var(--bg-raised)',
+                  border: `1px solid ${
+                    claimed
+                      ? `color-mix(in srgb, ${meta.color} 50%, transparent)`
+                      : 'var(--border)'
+                  }`,
+                  opacity: claimed ? 1 : 0.5,
+                }}
+              >
+                {meta.glyph}
+              </div>
+            );
+          })}
         </div>
 
         {/* ── Taken date + download ── */}

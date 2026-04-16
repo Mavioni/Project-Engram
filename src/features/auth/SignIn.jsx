@@ -150,7 +150,7 @@ export default function SignIn() {
                 padding: '8px 16px',
                 borderRadius: 999,
                 border: `1px solid ${active ? 'var(--border-strong)' : 'var(--border)'}`,
-                background: active ? 'rgba(255,255,255,0.05)' : 'transparent',
+                background: active ? 'var(--bg-raised)' : 'transparent',
                 color: active ? 'var(--ink)' : 'var(--ink-dim)',
                 fontFamily: 'var(--mono)',
                 fontSize: 10,

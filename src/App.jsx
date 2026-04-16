@@ -16,6 +16,7 @@ import Nav from './components/Nav.jsx';
 import TopBar from './components/TopBar.jsx';
 import AuthGate from './components/AuthGate.jsx';
 import Backdrop from './components/Backdrop.jsx';
+import LevelUpToast from './components/LevelUpToast.jsx';
 import Home from './features/home/Home.jsx';
 import CheckIn from './features/journal/CheckIn.jsx';
 import { useThemeEffect } from './lib/theme.js';
@@ -115,6 +116,7 @@ export default function App() {
         </Suspense>
       </div>
       <Nav />
+      <LevelUpToast />
     </>
   );
 }

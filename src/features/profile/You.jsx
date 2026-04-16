@@ -543,7 +543,7 @@ function StatusRow({ label, on }) {
           width: 8,
           height: 8,
           borderRadius: '50%',
-          background: on ? '#63e6be' : 'rgba(255,255,255,0.12)',
+          background: on ? '#63e6be' : 'var(--border-strong)',
           boxShadow: on ? '0 0 8px rgba(99,230,190,0.7)' : 'none',
         }}
       />

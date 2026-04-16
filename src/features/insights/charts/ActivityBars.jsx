@@ -32,7 +32,7 @@ export default function ActivityBars({ data, limit = 10 }) {
             style={{
               flex: 1,
               height: 8,
-              background: 'rgba(255,255,255,0.04)',
+              background: 'var(--border)',
               borderRadius: 4,
               overflow: 'hidden',
             }}

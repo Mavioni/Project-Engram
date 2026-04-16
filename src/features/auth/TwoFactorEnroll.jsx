@@ -177,7 +177,7 @@ export default function TwoFactorEnroll() {
               textAlign: 'center',
               wordBreak: 'break-all',
               padding: '8px 12px',
-              background: 'rgba(255,255,255,0.03)',
+              background: 'var(--bg-raised)',
               border: '1px solid var(--border)',
               borderRadius: 6,
               marginBottom: 24,

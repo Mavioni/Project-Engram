@@ -218,7 +218,7 @@ export default function Chat() {
             maxHeight: 160,
             borderRadius: 14,
             border: '1px solid var(--border)',
-            background: 'rgba(255,255,255,0.03)',
+            background: 'var(--bg-raised)',
             color: 'var(--ink)',
             fontFamily: 'var(--serif)',
             fontSize: 16,
@@ -249,7 +249,7 @@ function MessageBubble({ role, content, error }) {
         borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
         background: isUser
           ? 'linear-gradient(180deg, rgba(255,209,102,0.15), rgba(255,209,102,0.05))'
-          : 'rgba(255,255,255,0.03)',
+          : 'var(--bg-raised)',
         border: isUser ? '1px solid rgba(255,209,102,0.28)' : '1px solid var(--border)',
         color: error ? '#ff6b6b' : 'var(--ink)',
         fontSize: 15,

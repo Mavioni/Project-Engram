@@ -58,7 +58,16 @@ const initialEngram = () => ({
   level: 1,
   defeated: [], // array of archetype type numbers (1..9) bested in the arena
   battleHistory: [], // last ~30 battles: { archetype, won, rounds: [{domain, user, opp, winner}], at }
+  pendingLevelUp: null, // set to the new level number when awardXp crosses a boundary; cleared by acknowledgeLevelUp
+  dailyChallenge: null, // { day, archetype, completed } — one per local day, surfaced on Dashboard
 });
+
+// Level from XP. Mirrors src/features/engram/rewards.js:levelFromXp,
+// duplicated here so the store has no feature-folder import cycles.
+const levelFromXp = (xp) => {
+  if (!Number.isFinite(xp) || xp <= 0) return 1;
+  return Math.floor(Math.sqrt(xp / 100)) + 1;
+};
 
 export const useStore = create(
   persist(
@@ -221,11 +230,25 @@ export const useStore = create(
         })),
 
       // ── Engram (replica / arena) ──
+      // Every XP award checks whether the level boundary was
+      // crossed; if so, `pendingLevelUp` is set and the Dashboard
+      // surfaces a celebration toast on the user's next render.
       awardXp: (amount) =>
         set((s) => {
-          const nextXp = (s.engram.xp || 0) + Math.max(0, amount | 0);
-          const nextLevel = Math.floor(Math.sqrt(nextXp / 100)) + 1;
-          return { engram: { ...s.engram, xp: nextXp, level: nextLevel } };
+          const delta = Math.max(0, amount | 0);
+          if (delta === 0) return {};
+          const prevLevel = s.engram.level || levelFromXp(s.engram.xp);
+          const nextXp = (s.engram.xp || 0) + delta;
+          const nextLevel = levelFromXp(nextXp);
+          return {
+            engram: {
+              ...s.engram,
+              xp: nextXp,
+              level: nextLevel,
+              pendingLevelUp:
+                nextLevel > prevLevel ? nextLevel : s.engram.pendingLevelUp,
+            },
+          };
         }),
       recordBattle: (result) =>
         set((s) => {
@@ -237,8 +260,16 @@ export const useStore = create(
             ...(s.engram.battleHistory || []),
           ].slice(0, 30);
           const xpDelta = result.won ? 100 : 25;
+          const prevLevel = s.engram.level || levelFromXp(s.engram.xp);
           const nextXp = (s.engram.xp || 0) + xpDelta;
-          const nextLevel = Math.floor(Math.sqrt(nextXp / 100)) + 1;
+          const nextLevel = levelFromXp(nextXp);
+          // A won battle against the daily challenge target flips
+          // the challenge's `completed` flag.
+          const dc = s.engram.dailyChallenge;
+          const nextDaily =
+            dc && !dc.completed && result.won && dc.archetype === result.archetype
+              ? { ...dc, completed: true }
+              : dc;
           return {
             engram: {
               ...s.engram,
@@ -246,6 +277,37 @@ export const useStore = create(
               level: nextLevel,
               defeated,
               battleHistory: history,
+              pendingLevelUp:
+                nextLevel > prevLevel ? nextLevel : s.engram.pendingLevelUp,
+              dailyChallenge: nextDaily,
+            },
+          };
+        }),
+      acknowledgeLevelUp: () =>
+        set((s) => ({ engram: { ...s.engram, pendingLevelUp: null } })),
+      // Called by the Dashboard on mount — if today doesn't yet
+      // have a challenge, pick one. The archetype is chosen from
+      // the set the user hasn't defeated yet (or cycles through
+      // all 9 if they've already sealed everyone).
+      ensureDailyChallenge: () =>
+        set((s) => {
+          const day = dayKey();
+          if (s.engram.dailyChallenge?.day === day) return {};
+          const userType = s.iris?.enneagramType;
+          const allTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((t) => t !== userType);
+          const undefeated = allTypes.filter(
+            (t) => !(s.engram.defeated || []).includes(t),
+          );
+          const pool = undefeated.length > 0 ? undefeated : allTypes;
+          // Deterministic-per-day: hash the day key so the user
+          // sees the same challenge all day, even across refreshes.
+          let h = 0;
+          for (let i = 0; i < day.length; i++) h = ((h << 5) - h + day.charCodeAt(i)) | 0;
+          const archetype = pool[Math.abs(h) % pool.length];
+          return {
+            engram: {
+              ...s.engram,
+              dailyChallenge: { day, archetype, completed: false },
             },
           };
         }),
