@@ -51,16 +51,31 @@ const initialSubscription = () => ({
   aiCreditsResetAt: null,
 });
 
+// Engram replica: the user's evolving stats — XP, level, and
+// the archetypes they've defeated in the arena.
+const initialEngram = () => ({
+  xp: 0,
+  level: 1,
+  defeated: [], // array of archetype type numbers (1..9) bested in the arena
+  battleHistory: [], // last ~30 battles: { archetype, won, rounds: [{domain, user, opp, winner}], at }
+});
+
 export const useStore = create(
   persist(
     (set, _get) => ({
       schemaVersion: SCHEMA_VERSION,
+      theme: 'light', // 'light' | 'dark' — app-wide UI theme
       profile: initialProfile(),
       iris: initialIris(),
       subscription: initialSubscription(),
+      engram: initialEngram(),
       entries: [],
       insights: [], // cached Claude outputs
       chatThreads: [],
+
+      // ── Theme ──
+      setTheme: (theme) =>
+        set(() => ({ theme: theme === 'dark' ? 'dark' : 'light' })),
 
       // ── Onboarding ──
       setName: (name) =>
@@ -205,16 +220,50 @@ export const useStore = create(
           },
         })),
 
+      // ── Engram (replica / arena) ──
+      awardXp: (amount) =>
+        set((s) => {
+          const nextXp = (s.engram.xp || 0) + Math.max(0, amount | 0);
+          const nextLevel = Math.floor(Math.sqrt(nextXp / 100)) + 1;
+          return { engram: { ...s.engram, xp: nextXp, level: nextLevel } };
+        }),
+      recordBattle: (result) =>
+        set((s) => {
+          const defeated = result.won
+            ? Array.from(new Set([...(s.engram.defeated || []), result.archetype]))
+            : s.engram.defeated || [];
+          const history = [
+            { ...result, at: new Date().toISOString() },
+            ...(s.engram.battleHistory || []),
+          ].slice(0, 30);
+          const xpDelta = result.won ? 100 : 25;
+          const nextXp = (s.engram.xp || 0) + xpDelta;
+          const nextLevel = Math.floor(Math.sqrt(nextXp / 100)) + 1;
+          return {
+            engram: {
+              ...s.engram,
+              xp: nextXp,
+              level: nextLevel,
+              defeated,
+              battleHistory: history,
+            },
+          };
+        }),
+
       // ── Reset (with confirm in UI) ──
       hardReset: () =>
-        set({
+        set((s) => ({
+          // Theme preference survives a hard reset — it's a UI choice,
+          // not user content.
+          theme: s.theme,
           profile: initialProfile(),
           iris: initialIris(),
           subscription: initialSubscription(),
+          engram: initialEngram(),
           entries: [],
           insights: [],
           chatThreads: [],
-        }),
+        })),
     }),
     {
       name: STORAGE_KEY,

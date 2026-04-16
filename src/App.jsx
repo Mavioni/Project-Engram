@@ -1,5 +1,13 @@
 // ─────────────────────────────────────────────────────────────
-// App shell — routes, layout, ambient backdrop, and auth gates.
+// App shell — routes, theme sync, top/bottom chrome.
+// ─────────────────────────────────────────────────────────────
+//
+// Primary nav (3 tabs): Dashboard / Chat / Engram
+// Secondary: reached via in-page links — Journal, Calendar,
+//            Insights, Settings, IRIS, Pricing, Account, Auth
+//
+// Legacy paths (/home, /insights/chat, /you) redirect so any
+// old bookmarks and links in previous HTML exports keep working.
 // ─────────────────────────────────────────────────────────────
 
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
@@ -9,18 +17,18 @@ import TopBar from './components/TopBar.jsx';
 import AuthGate from './components/AuthGate.jsx';
 import Backdrop from './components/Backdrop.jsx';
 import Home from './features/home/Home.jsx';
-import Journal from './features/journal/Journal.jsx';
 import CheckIn from './features/journal/CheckIn.jsx';
-import Calendar from './features/calendar/Calendar.jsx';
-import You from './features/profile/You.jsx';
+import { useThemeEffect } from './lib/theme.js';
 
-// Lazy-load the heavier routes to keep the initial bundle lean.
+// Secondary routes (reached via in-page links)
+const Journal = lazy(() => import('./features/journal/Journal.jsx'));
+const Calendar = lazy(() => import('./features/calendar/Calendar.jsx'));
 const Insights = lazy(() => import('./features/insights/Insights.jsx'));
 const Chat = lazy(() => import('./features/insights/Chat.jsx'));
+const Engram = lazy(() => import('./features/engram/Engram.jsx'));
+const Settings = lazy(() => import('./features/settings/Settings.jsx'));
 const IrisRoute = lazy(() => import('./features/iris/IrisRoute.jsx'));
 const Pricing = lazy(() => import('./features/subscription/Pricing.jsx'));
-
-// Auth screens (lazy — most users hit them rarely).
 const SignIn = lazy(() => import('./features/auth/SignIn.jsx'));
 const TwoFactorChallenge = lazy(() =>
   import('./features/auth/TwoFactorChallenge.jsx'),
@@ -50,15 +58,14 @@ function LazyFallback() {
 
 export default function App() {
   const location = useLocation();
+  // Keeps <html data-theme> in sync with the store's theme value.
+  useThemeEffect();
+
   return (
     <>
-      {/* Fixed ambient sacred-geometry layer behind everything. */}
       <Backdrop />
-
-      {/* Top bar with Engram logo — hidden on full-screen flows. */}
       <TopBar />
 
-      {/* Routed content sits above the backdrop. */}
       <div
         style={{
           position: 'relative',
@@ -71,58 +78,37 @@ export default function App() {
       >
         <Suspense fallback={<LazyFallback />}>
           <Routes location={location} key={location.pathname}>
-            {/* Home dashboard — Player Card hero + journal + stats.
-                This is the site's front door now. */}
+            {/* Primary routes (bottom nav) */}
             <Route path="/" element={<Home />} />
+            <Route path="/chat" element={<AuthGate><Chat /></AuthGate>} />
+            <Route path="/engram" element={<Engram />} />
 
-            {/* IRIS v4 assessment — the 16-scenario simulation,
-                Coliseum, and Player Card export. */}
+            {/* Secondary routes (in-page links) */}
+            <Route path="/settings" element={<Settings />} />
             <Route path="/iris" element={<IrisRoute />} />
-
-            {/* Extended site */}
+            <Route path="/checkin" element={<CheckIn />} />
             <Route path="/journal" element={<Journal />} />
-            <Route path="/journal/checkin" element={<CheckIn />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/insights" element={<Insights />} />
-            <Route path="/you" element={<You />} />
 
-            {/* Auth flow */}
+            {/* Auth */}
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signin/2fa" element={<TwoFactorChallenge />} />
-
-            {/* Authenticated routes */}
             <Route
               path="/account"
-              element={
-                <AuthGate>
-                  <Account />
-                </AuthGate>
-              }
+              element={<AuthGate><Account /></AuthGate>}
             />
             <Route
               path="/account/2fa"
-              element={
-                <AuthGate requireMfa={false}>
-                  <TwoFactorEnroll />
-                </AuthGate>
-              }
+              element={<AuthGate requireMfa={false}><TwoFactorEnroll /></AuthGate>}
             />
-            <Route
-              path="/pricing"
-              element={
-                <AuthGate>
-                  <Pricing />
-                </AuthGate>
-              }
-            />
-            <Route
-              path="/insights/chat"
-              element={
-                <AuthGate>
-                  <Chat />
-                </AuthGate>
-              }
-            />
+            <Route path="/pricing" element={<AuthGate><Pricing /></AuthGate>} />
+
+            {/* Legacy redirects — preserve bookmarks */}
+            <Route path="/home" element={<Navigate to="/" replace />} />
+            <Route path="/journal/checkin" element={<Navigate to="/checkin" replace />} />
+            <Route path="/insights/chat" element={<Navigate to="/chat" replace />} />
+            <Route path="/you" element={<Navigate to="/settings" replace />} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

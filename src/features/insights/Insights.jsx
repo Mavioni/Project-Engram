@@ -96,7 +96,7 @@ export default function Insights() {
             <Button
               variant="solid"
               tone="#ffd166"
-              onClick={() => navigate('/journal/checkin')}
+              onClick={() => navigate('/checkin')}
             >
               Start your first check-in
             </Button>

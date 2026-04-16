@@ -1,30 +1,142 @@
 # Engram
 
-**Catalog yourself.** Engram is a local-first personality-tracking PWA that pairs a 24-facet IRIS personality map with a daily, emoji-driven journal and Claude-powered insights. It deploys to **GitHub Pages** via a GitHub Actions workflow on every push.
+**Catalog yourself. Train your replica. Battle archetypes.**
+
+Engram is a local-first personality-tracking PWA built around three ideas:
+
+1. **IRIS** — a 24-facet, 16-scenario personality simulation that produces a **Player Card** (your archetype, domain stats, societal standing, wing, resonance, vector code).
+2. **Daily check-ins** — mood + activities + notes, consolidated into a single scrollable Dashboard that also shows recent entries, a mood trend, and a 2-week calendar heatmap.
+3. **Your Engram** — an evolving personality replica you grow through IRIS, journaling, and winning arena battles against the nine archetypes. Level up, collect seals, keep your replica sharp.
+
+Deploys to **GitHub Pages** on every push. Light mode by default; dark mode is one tap away in Settings.
 
 ```
 git push origin main          # GitHub Actions builds + publishes
 ```
 
-— that's the whole shipping story.
+---
+
+## Information architecture
+
+Three primary tabs (the only buttons in the bottom nav):
+
+| Tab | Route | What it is |
+|---|---|---|
+| **Dashboard** | `/` | Your home surface — Player Card + today + recent entries + mood trend + mini calendar + Engram teaser |
+| **Chat** | `/chat` | Grounded chat with your IRIS (Claude-powered) |
+| **Engram** | `/engram` | Your replica — stats, arena (battle 9 archetypes), battle history |
+
+Everything else — IRIS assessment, full journal, calendar, insights, settings, pricing, auth — lives behind in-page links. The **logo** in the top-left always returns to the Dashboard; the **gear** in the top-right opens Settings.
+
+### Theme
+
+**Light mode is the default.** Toggle via Settings → Appearance. The theme value is persisted in the local store and applied to `<html data-theme>` before React mounts so there's no flash.
+
+### Engram — the replica game
+
+Your Engram is a personality replica derived from your IRIS facet scores. The arena pits it against the nine Enneagram archetypes in a best-of-5 domain showdown: each round picks a random domain (Cognitive, Emotional, Volitional, Relational, Existential, or Shadow) and compares averages. Wins earn 100 XP and a permanent **seal**; losses still earn 25 XP. Level is computed from total XP via `floor(sqrt(xp / 100)) + 1`.
+
+Combat logic is deterministic (seeded PRNG) and pure — see `src/features/engram/combat.js`. Fully unit-tested in `combat.test.js` + `rewards.test.js`.
 
 ---
 
-## What's inside
+## Routes
+<!-- AUTO:routes -->
+**Primary (bottom nav)**
 
-| Area | What the user sees |
+| Path | What it is |
 |---|---|
-| **Home** | Greeting, streak, today's check-in, 7-day mood sparkline, next-step card. |
-| **Journal** | Full timeline of every entry with moods, activity tags, and note cards. |
-| **Check-In** | 3-step flow: mood (5-emoji scale) → activities (7 groups, ~50 emoji tags) → note (9 kinds: reflection, idea, dream, gratitude, win, struggle, question, quote, goal). |
-| **Calendar** | Month-grid heatmap with per-day mood emoji, tap any day to view its entry. |
-| **Insights** | Area chart of mood trend, horizontal activity bars, GitHub-style consistency grid, IRIS domain radar, and three AI insight buttons (daily / weekly / monthly). |
-| **Chat with your IRIS** | Grounded chat that calls Claude with your full IRIS profile attached. |
-| **You** | Profile + IRIS results + radar + subscription status + danger-zone reset. |
-| **Pricing** | Free vs. Engram Pro ($4.99/mo or $39/yr). |
-| **IRIS** | The original 16-scenario / 24-facet / Enneagram assessment, lifted intact into `src/features/iris/`. |
+| `/` | Dashboard |
+| `/chat` | Chat with your IRIS |
+| `/engram` | Engram — replica + arena |
 
-All data is stored locally in IndexedDB-backed `localStorage` via Zustand. Cloud sync, Claude insights, and Stripe billing activate only when the corresponding env vars are present — the app degrades gracefully to local-only without them.
+**Secondary (in-page links)**
+
+| Path | What it is |
+|---|---|
+| `/settings` | Settings + theme toggle |
+| `/iris` | IRIS v4 assessment |
+| `/checkin` | Daily check-in flow |
+| `/journal` | Journal timeline |
+| `/calendar` | Month calendar |
+| `/insights` | Insights + charts |
+
+**Auth**
+
+| Path | What it is |
+|---|---|
+| `/signin` | Sign in / up / magic link |
+| `/signin/2fa` | TOTP step-up challenge |
+| `/account` | Account hub |
+| `/account/2fa` | Enroll 2FA |
+| `/pricing` | Subscription plans |
+
+**Legacy redirects**
+
+| Path | What it is |
+|---|---|
+| `/home` | /home → redirect |
+| `/journal/checkin` | /journal/checkin → redirect |
+| `/insights/chat` | /insights/chat → redirect |
+| `/you` | /you → redirect |
+<!-- /AUTO:routes -->
+
+## Feature folders
+<!-- AUTO:features -->
+| Folder | Feature |
+|---|---|
+| `src/features/auth/` | Sign in / Sign up / 2FA TOTP / Account |
+| `src/features/calendar/` | Month heatmap |
+| `src/features/engram/` | Engram replica — Stats, Arena (battle 9 archetypes), History |
+| `src/features/home/` | Dashboard — the single primary surface |
+| `src/features/insights/` | Charts + Claude-powered insights + Chat |
+| `src/features/iris/` | IRIS v4 — 24-facet assessment + Coliseum + Player Card export |
+| `src/features/journal/` | Journal timeline + Check-In flow |
+| `src/features/profile/` | Legacy You page (redirects to Settings) |
+| `src/features/settings/` | Theme toggle, account, plan, reset |
+| `src/features/subscription/` | Stripe-gated Pro pricing + upgrade |
+<!-- /AUTO:features -->
+
+## npm scripts
+<!-- AUTO:scripts -->
+| Script | Purpose |
+|---|---|
+| `npm run dev` | Local dev server (Vite) |
+| `npm run build` | Production build to `dist/` (runs `prebuild` first) |
+| `npm run preview` | Serve the built bundle |
+| `npm run icons` | Rasterize `public/icon.svg` → PNG manifest icons |
+| `npm run docs:update` | Regenerate auto-sections in README |
+| `npm run docs:check` | Verify README auto-sections are up to date (exits non-zero if stale) |
+| `npm run prebuild` | Runs before `build` — generates icons + updates docs |
+| `npm run lint` | ESLint on `src/`, zero warnings tolerated |
+| `npm run format` | Prettier write on everything |
+| `npm run test` | Vitest in watch mode |
+| `npm run test:ci` | Vitest single-run (CI) |
+<!-- /AUTO:scripts -->
+
+## Stats
+<!-- AUTO:stats -->
+| Item | Value |
+|---|---|
+| Version | `0.1.0` |
+| Node | `>=20` |
+| Test files | 5 |
+| Test cases | 58 |
+| Last doc sync | 2026-04-16 |
+<!-- /AUTO:stats -->
+
+## Dependencies
+<!-- AUTO:deps -->
+**8 production dependencies**
+
+`@supabase/supabase-js@2.103.1`, `date-fns@4.1.0`, `react@19.2.5`, `react-dom@19.2.5`, `react-router-dom@7.14.1`, `recharts@3.8.1`, `three@0.183.2`, `zustand@5.0.12`
+
+**17 dev dependencies**
+
+`@eslint/js@9.39.4`, `@testing-library/jest-dom@6.9.1`, `@testing-library/react@16.3.2`, `@testing-library/user-event@14.6.1`, `@types/react@19.2.14`, `@types/react-dom@19.2.3`, `@vitejs/plugin-react@5.2.0`, `eslint@9.12.0`, `eslint-plugin-react@7.37.1`, `eslint-plugin-react-hooks@7.0.1`, `globals@17.5.0`, `happy-dom@20.9.0`, `prettier@3.8.3`, `sharp@0.34.5`, `vite@7.3.2`, `vite-plugin-pwa@1.2.0`, `vitest@4.1.4`
+<!-- /AUTO:deps -->
+
+All data is stored locally via Zustand with a `localStorage` persistence layer. Cloud sync, Claude insights, and Stripe billing activate only when the corresponding env vars are present — the app degrades gracefully to local-only without them.
 
 ---
 
@@ -32,7 +144,8 @@ All data is stored locally in IndexedDB-backed `localStorage` via Zustand. Cloud
 
 ```
 ┌─────────────────────── Browser (PWA) ──────────────────────┐
-│  React 18 + React Router + Zustand + Recharts + three.js   │
+│  React 19 + React Router 7 + Zustand 5 + Recharts 3 +      │
+│  three.js 0.183 + Vite 7 + vite-plugin-pwa                  │
 │  ─────────────────────────────────────────────────────────  │
 │  Local-first store (localStorage)                           │
 │       │                                                     │
@@ -334,37 +447,35 @@ This repo ships the web path. The Play Store TWA will install fine; the Pricing 
 
 ```
 .
-├── README.md                     ← you are here
+├── README.md                     ← auto-synced (see below)
 ├── LICENSE
 ├── package.json, vite.config.js  ← build tooling (vite.config reads BASE_PATH env)
 ├── index.html                    ← Vite entry + SPA redirect decode script
 ├── .env.example                  ← env vars — all optional
+├── eslint.config.js              ← flat-config ESLint + vitest globals
 ├── .github/workflows/
-│   └── deploy.yml                ← builds + publishes to GitHub Pages on push
+│   ├── deploy.yml                ← builds + publishes to GitHub Pages on push to main
+│   ├── ci.yml                    ← lint + test + build on every PR
+│   └── lighthouse.yml            ← advisory PWA/perf audit on PRs touching app code
 ├── scripts/
-│   └── gen-icons.mjs             ← rasterizes public/icon.svg → PNG
+│   ├── gen-icons.mjs             ← rasterizes public/icon.svg → PNG manifest icons
+│   └── update-docs.mjs           ← regenerates README auto-sections from the codebase
 ├── public/
 │   ├── icon.svg, favicon.svg     ← source
 │   ├── icon-{192,512,maskable-512}.png, apple-touch-icon.png  ← generated
 │   ├── 404.html                  ← GitHub Pages SPA redirect encode
 │   ├── robots.txt
-│   └── .well-known/
-│       └── assetlinks.json       ← TWA verification (needs custom domain on GH Pages)
+│   └── .well-known/assetlinks.json
 ├── src/
-│   ├── main.jsx, App.jsx         ← React entry + router (basename=BASE_URL)
-│   ├── styles/{global.css, tokens.js}
-│   ├── lib/                      ← ternary, time, store, supabase, auth, claude, stripe
-│   ├── data/                     ← moods, activities, note kinds
-│   ├── components/               ← Emoji, Screen, Button, Nav, Card, Empty, MoodPicker, ActivityPicker, ErrorBoundary, AuthGate
-│   └── features/
-│       ├── iris/                 ← IRIS.jsx (the original), IrisRoute.jsx wrapper
-│       ├── home/                 ← Home dashboard
-│       ├── journal/              ← CheckIn, Journal
-│       ├── calendar/             ← Calendar heatmap
-│       ├── insights/             ← Insights + charts/*, Chat
-│       ├── auth/                 ← SignIn, TwoFactorEnroll, TwoFactorChallenge, Account
-│       ├── subscription/         ← Pricing
-│       └── profile/              ← You
+│   ├── main.jsx, App.jsx         ← React entry + router + theme sync
+│   ├── styles/{global.css, tokens.js}  ← CSS vars for light + dark
+│   ├── lib/                      ← ternary, time, store, theme, supabase, auth, claude, stripe
+│   ├── data/                     ← moods, activities, note kinds, enneagram types/domains
+│   ├── components/               ← TopBar, Nav, Screen, Card, Button, Emoji, MoodPicker,
+│   │                              ActivityPicker, Empty, ErrorBoundary, AuthGate,
+│   │                              Backdrop, PlayerCard, SacredGeometry
+│   ├── features/                 ← see Feature folders table above
+│   └── test/                     ← render-smoke tests + setup + localStorage polyfill
 └── supabase/
     ├── config.toml
     ├── migrations/0001_init.sql  ← full schema + RLS
@@ -374,6 +485,14 @@ This repo ships the web path. The Play Store TWA will install fine; the Pricing 
         ├── stripe-portal/        ← customer billing portal
         └── stripe-webhook/       ← Stripe → Supabase sync
 ```
+
+### Auto-synced docs
+
+The **Routes**, **Feature folders**, **npm scripts**, **Stats**, and **Dependencies** tables at the top of this README are regenerated from the codebase every time you run `npm run build` — via `scripts/update-docs.mjs`, which reads `src/App.jsx`, `package.json`, and the test files and rewrites only the content inside `<!-- AUTO:xxx -->` markers. Hand-written prose outside the markers is never touched.
+
+- `npm run docs:update` — regenerate in place
+- `npm run docs:check` — exits non-zero if stale (use in CI if you want a hard guarantee)
+- Runs automatically via `prebuild`, so every deployed build ships with current docs.
 
 ---
 

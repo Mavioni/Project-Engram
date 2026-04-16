@@ -177,7 +177,7 @@ export default function Calendar() {
                 variant="solid"
                 tone="#ffd166"
                 size="sm"
-                onClick={() => navigate('/journal/checkin')}
+                onClick={() => navigate('/checkin')}
               >
                 Check in now
               </Button>

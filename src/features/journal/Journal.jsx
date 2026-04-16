@@ -12,7 +12,7 @@ import Emoji from '../../components/Emoji.jsx';
 import Empty from '../../components/Empty.jsx';
 import { VesicaPiscis } from '../../components/SacredGeometry.jsx';
 import { useStore } from '../../lib/store.js';
-import { moodById } from '../../data/moods.js';
+import { moodByScore } from '../../data/moods.js';
 import { ALL_ACTIVITIES } from '../../data/activities.js';
 import { noteKindById } from '../../data/notekinds.js';
 import { format, parseISO } from '../../lib/time.js';
@@ -37,7 +37,7 @@ export default function Journal() {
           variant="solid"
           tone="#ffd166"
           size="sm"
-          onClick={() => navigate('/journal/checkin')}
+          onClick={() => navigate('/checkin')}
         >
           + Check in
         </Button>
@@ -52,7 +52,7 @@ export default function Journal() {
             <Button
               variant="solid"
               tone="#ffd166"
-              onClick={() => navigate('/journal/checkin')}
+              onClick={() => navigate('/checkin')}
             >
               Start now
             </Button>
@@ -66,11 +66,9 @@ export default function Journal() {
 }
 
 function EntryCard({ entry }) {
-  const mood = moodById(entry.mood) || {
-    color: '#aaaabb',
-    emoji: '1f610',
-    label: '',
-  };
+  // `entry.mood` is a [0,1] score (CheckIn writes `mood.score`),
+  // not a mood id — look it up by nearest score.
+  const mood = moodByScore(entry.mood);
   const date = parseISO(entry.day + 'T00:00:00');
   return (
     <Card accent={mood.color} style={{ marginBottom: 14 }}>

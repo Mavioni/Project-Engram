@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// <Card /> — the reusable raised surface.
+// <Card /> — the reusable raised surface. Theme-aware.
 // ─────────────────────────────────────────────────────────────
 
 export default function Card({ accent, padding = 20, style, children, ...rest }) {
@@ -10,8 +10,9 @@ export default function Card({ accent, padding = 20, style, children, ...rest })
         position: 'relative',
         padding,
         borderRadius: 14,
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01))',
+        background: 'var(--bg-raised)',
         border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-card)',
         overflow: 'hidden',
         ...style,
       }}

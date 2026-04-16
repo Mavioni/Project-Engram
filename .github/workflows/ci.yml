@@ -30,6 +30,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Doc drift guard — fails if README auto-sections don't match
+      # the current codebase. Run `npm run docs:update` locally to fix.
+      # Runs BEFORE build because `prebuild` regenerates docs itself.
+      - name: Docs up-to-date check
+        run: npm run docs:check
+
       - name: Test
         run: npm run test:ci
 

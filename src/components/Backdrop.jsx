@@ -1,23 +1,19 @@
 // ─────────────────────────────────────────────────────────────
-// <Backdrop /> — the persistent ambient layer behind the app.
+// <Backdrop /> — persistent ambient sacred-geometry layer.
 // ─────────────────────────────────────────────────────────────
-// A single fixed-position SVG layer rendered once, sitting below
-// every screen. It shows an enormous Flower of Life + Metatron's
-// Cube composition at ~0.05 opacity that rotates once every ~4
-// minutes. On most pages you don't see it consciously — you just
-// feel that the background "holds" the content.
-//
-// Performance:
-//   - position: fixed, inset: 0, pointer-events: none (never
-//     intercepts clicks)
-//   - one SVG, ~40 elements total (tiny DOM cost)
-//   - CSS animation uses transform, runs on the compositor
-//   - aria-hidden (pure decoration)
+// Renders behind every screen at very low opacity. Theme-aware:
+// dark mode shows cosmic blues/purples; light mode uses muted
+// warm ink that barely registers — enough to give texture but
+// nowhere near enough to distract.
 // ─────────────────────────────────────────────────────────────
 
 import { FlowerOfLife, MetatronsCube } from './SacredGeometry.jsx';
+import { useTheme } from '../lib/theme.js';
 
 export default function Backdrop() {
+  const { theme } = useTheme();
+  const dark = theme === 'dark';
+
   return (
     <div
       aria-hidden="true"
@@ -31,43 +27,41 @@ export default function Backdrop() {
         placeItems: 'center',
       }}
     >
-      {/* Outer layer — slow, big, very faint */}
       <div
         style={{
           position: 'absolute',
           width: 'min(120vmin, 900px)',
           height: 'min(120vmin, 900px)',
-          color: '#7eb5ff',
+          color: dark ? '#7eb5ff' : '#4a4a58',
           animation: 'engramRotate 360s linear infinite',
           transformOrigin: 'center',
-          opacity: 0.08,
+          opacity: dark ? 0.08 : 0.04,
         }}
       >
         <FlowerOfLife size="100%" rings={3} strokeWidth={0.22} opacity={1} />
       </div>
 
-      {/* Middle layer — slightly smaller, counter-rotating */}
       <div
         style={{
           position: 'absolute',
           width: 'min(80vmin, 600px)',
           height: 'min(80vmin, 600px)',
-          color: '#b197fc',
+          color: dark ? '#b197fc' : '#7c3aed',
           animation: 'engramRotate 240s linear infinite reverse',
           transformOrigin: 'center',
-          opacity: 0.07,
+          opacity: dark ? 0.07 : 0.03,
         }}
       >
         <MetatronsCube size="100%" strokeWidth={0.25} opacity={1} />
       </div>
 
-      {/* Film-grain vignette on top to darken edges */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          background:
-            'radial-gradient(circle at center, transparent 35%, rgba(6,6,14,0.7) 100%)',
+          background: dark
+            ? 'radial-gradient(circle at center, transparent 35%, rgba(6,6,14,0.7) 100%)'
+            : 'radial-gradient(circle at center, transparent 40%, rgba(245,244,238,0.7) 100%)',
         }}
       />
     </div>

@@ -1,10 +1,42 @@
 /* ─────────────────────────────────────────────────────────────
-   Engram — global styles
-   Dark, reverent, film-grain. Cormorant Garamond for prose,
-   DM Mono for labels. Everything else is components.
+   Engram — global styles with light + dark theme.
+   Theme is driven by data-theme="light|dark" on <html>.
+   Default is light; `useTheme()` toggles via Settings.
 ───────────────────────────────────────────────────────────── */
 
-:root {
+/* ── Light theme (default) ── */
+:root,
+:root[data-theme='light'] {
+  --bg: #f5f4ee;
+  --bg-soft: #fdfcf7;
+  --bg-raised: #ffffff;
+  --border: rgba(17, 17, 30, 0.08);
+  --border-strong: rgba(17, 17, 30, 0.22);
+
+  --ink: #141420;
+  --ink-soft: #4a4a58;
+  --ink-dim: #8a8a94;
+  --ink-faint: #c5c5cc;
+
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --grain-opacity: 0.02;
+
+  --d-cog: #3b82f6;
+  --d-emo: #e11d6b;
+  --d-vol: #f59e0b;
+  --d-rel: #16a34a;
+  --d-exi: #7c3aed;
+  --d-sha: #52525b;
+
+  --accent: #d97706;
+  --good: #059669;
+  --bad: #dc2626;
+
+  color-scheme: light;
+}
+
+/* ── Dark theme ── */
+:root[data-theme='dark'] {
   --bg: #06060e;
   --bg-soft: #0b0b17;
   --bg-raised: #111122;
@@ -15,6 +47,9 @@
   --ink-soft: #aaaabb;
   --ink-dim: #666677;
   --ink-faint: #333344;
+
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --grain-opacity: 0.06;
 
   --d-cog: #7eb5ff;
   --d-emo: #ff6b8a;
@@ -27,6 +62,11 @@
   --good: #63e6be;
   --bad: #ff6b6b;
 
+  color-scheme: dark;
+}
+
+/* ── Shared ── */
+:root {
   --serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
   --mono: 'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
@@ -36,6 +76,7 @@
   --safe-right: env(safe-area-inset-right, 0px);
 
   --nav-height: 64px;
+  --topbar-height: 52px;
 }
 
 * {
@@ -52,10 +93,11 @@ body,
   background: var(--bg);
   color: var(--ink);
   font-family: var(--serif);
-  font-weight: 300;
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior-y: none;
+  transition: background-color 320ms ease, color 320ms ease;
 }
 
 #root {
@@ -65,7 +107,15 @@ body,
   min-height: 100dvh;
 }
 
-body {
+/* Theme-aware body wash — subtle warmth in light mode, cosmic gradient in dark. */
+:root[data-theme='light'] body {
+  background-image:
+    radial-gradient(circle at 15% 5%, rgba(217, 119, 6, 0.04), transparent 50%),
+    radial-gradient(circle at 85% 95%, rgba(124, 58, 237, 0.03), transparent 50%);
+  background-attachment: fixed;
+}
+
+:root[data-theme='dark'] body {
   background-image:
     radial-gradient(circle at 20% 0%, rgba(126, 181, 255, 0.06), transparent 50%),
     radial-gradient(circle at 80% 100%, rgba(255, 107, 138, 0.05), transparent 50%);
@@ -99,11 +149,10 @@ a {
 }
 
 ::selection {
-  background: rgba(255, 209, 102, 0.25);
-  color: #fff;
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  color: var(--ink);
 }
 
-/* Scrollbar — ghostly */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -112,14 +161,13 @@ a {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--border);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--border-strong);
 }
 
-/* Utility classes used across features */
 .mono {
   font-family: var(--mono);
   letter-spacing: 0.08em;
@@ -141,16 +189,10 @@ a {
 
 .glow-line {
   height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.15),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
   margin: 24px 0;
 }
 
-/* Fade transition */
 .fade-enter {
   opacity: 0;
   transform: translateY(6px);
@@ -193,12 +235,10 @@ a {
   50%      { filter: drop-shadow(0 0 14px rgba(255, 209, 102, 0.35)); }
 }
 
-/* Screen route transitions — applied by the <Screen> wrapper */
 .engram-fade-in {
-  animation: engramFadeIn 420ms cubic-bezier(0.2, 1, 0.3, 1);
+  animation: engramFadeIn 360ms cubic-bezier(0.2, 1, 0.3, 1);
 }
 
-/* Hero sigil — the Home page's center piece */
 .engram-breathe {
   animation: engramBreathe 4.5s ease-in-out infinite;
 }

@@ -4,17 +4,31 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { AuthProvider } from './lib/auth.jsx';
+import { applyTheme } from './lib/theme.js';
 import './styles/global.css';
+
+// ─────────────────────────────────────────────────────────────
+// Apply the persisted theme to <html> BEFORE React mounts so
+// there's no flash of the wrong background. We read the raw
+// localStorage envelope (same key zustand/persist uses) so we
+// don't need to spin up the full store just for this.
+// ─────────────────────────────────────────────────────────────
+try {
+  const raw = localStorage.getItem('engram.v1');
+  if (raw) {
+    const parsed = JSON.parse(raw);
+    const theme = parsed?.state?.theme;
+    applyTheme(theme === 'dark' ? 'dark' : 'light');
+  } else {
+    applyTheme('light');
+  }
+} catch {
+  applyTheme('light');
+}
 
 // ─────────────────────────────────────────────────────────────
 // Mount React, replacing the inline #engram-boot indicator from
 // index.html.
-//
-// `import.meta.env.BASE_URL` is injected by Vite from the `base`
-// option in vite.config.js. In dev it's '/', in production on
-// GitHub Pages it's '/Project-Engram/'. React Router strips the
-// trailing slash from basename internally, so passing BASE_URL
-// directly is safe.
 // ─────────────────────────────────────────────────────────────
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -31,9 +45,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 // ─────────────────────────────────────────────────────────────
 // Service worker — deferred until after `load` so it never
 // competes with the main bundle for bandwidth on first paint.
-// Scope is set by vite-plugin-pwa to match the `base` path
-// (e.g. /Project-Engram/ on GitHub Pages), so the SW only
-// intercepts requests under our project subpath.
 // ─────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -42,8 +53,6 @@ if ('serviceWorker' in navigator) {
         registerSW({ immediate: false });
       })
       .catch((err) => {
-        // Non-fatal — the app runs fine without a SW, just no offline.
-         
         console.warn('[Engram] SW registration skipped:', err);
       });
   });
