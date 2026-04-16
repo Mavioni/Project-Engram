@@ -10,6 +10,7 @@
 <!-- AUTO:log -->
 ## 2026-04-16
 
+- `f17da5e` Archetype-tint the ambient Backdrop once IRIS is complete
 - `9e17eb1` Session-start protocol: say "hi" and Claude orients itself
 - `a26a665` fix: skip CHANGELOG freshness in docs:check (inherently stale)
 - `566bd7b` Rituals + ambient lofi-ish pad + patterns — turn the app from tracker into tool

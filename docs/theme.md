@@ -85,3 +85,9 @@ This mixes the archetype color at 18% opacity with transparency — lets the pag
 ## Adding a new color
 
 If you're introducing something with a semantic meaning (like a "warning" amber), add it as a CSS variable in both palettes. If it's just a brand accent (like a new archetype color), add it as a hex value to the relevant data file.
+
+## Backdrop tint
+
+The app-wide `<Backdrop />` (`src/components/Backdrop.jsx`) reads the user's Enneagram type from the store. Once IRIS is complete, the outer vignette is blended with the archetype's signature color via `color-mix` — 22% in dark mode, 14% in light. Before IRIS, the vignette stays neutral. The geometry layers remain theme-neutral so the brand texture is consistent across archetypes.
+
+The archetype color is surfaced on the backdrop root as `data-archetype="#hex"` so tests can verify the tint without depending on jsdom's handling of `color-mix()`.
