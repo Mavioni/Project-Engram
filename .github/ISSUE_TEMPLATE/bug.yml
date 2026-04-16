@@ -1,0 +1,50 @@
+name: Bug report
+description: Something isn't working the way it should.
+labels: ['bug']
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Where did you see it?
+      placeholder: e.g. /engram, the Dashboard, during a battle
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: What did you do?
+      placeholder: "1. Opened the Engram page\n2. Tapped The Challenger\n3. Entered the arena"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      placeholder: The battle card stayed blank — no rounds showed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      placeholder: The 5 rounds to play out, then a result card.
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device / browser
+      placeholder: iPhone 15 / Safari, or Desktop Chrome
+    validations:
+      required: true
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Red text in the console (if any)
+      description: Open DevTools (Cmd+Opt+I / F12) → Console. Paste anything in red.
+      render: text

@@ -1,0 +1,33 @@
+name: Polish
+description: Something works, but it doesn't feel right yet.
+labels: ['polish']
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Where in the app?
+      placeholder: e.g. Dashboard, Player Card, the check-in flow
+    validations:
+      required: true
+
+  - type: textarea
+    id: off
+    attributes:
+      label: What feels off?
+      description: An adjective is enough. Cramped, harsh, cold, noisy, fast, slow, loud, cluttered.
+      placeholder: The Player Card feels cramped in light mode — everything's packed too tight.
+    validations:
+      required: true
+
+  - type: textarea
+    id: better
+    attributes:
+      label: How should it feel instead?
+      placeholder: More airy. Room to breathe. Softer borders. Less gold.
+
+  - type: textarea
+    id: preserve
+    attributes:
+      label: What should stay the same?
+      description: What parts do you like? Don't let Claude touch those.
+      placeholder: Keep the seals row. Keep the archetype color accent.

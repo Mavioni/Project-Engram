@@ -27,10 +27,12 @@
 import { readFile, writeFile, readdir } from 'node:fs/promises';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');
 const README = resolve(root, 'README.md');
+const CHANGELOG = resolve(root, 'CHANGELOG.md');
 
 // ── helpers ────────────────────────────────────────────────
 
@@ -220,6 +222,68 @@ const REGIONS = {
   stats: regionStats,
 };
 
+// ── CHANGELOG generation ──────────────────────────────────
+// We read `git log` and group commits by date. Each commit becomes
+// a one-line entry (short SHA + subject). The summary line of each
+// commit is already written in imperative voice per house style,
+// so it reads cleanly as a changelog without rewriting.
+
+function renderChangelog() {
+  let log;
+  try {
+    log = execSync(
+      'git log --no-merges --pretty=format:"%h%x09%ad%x09%s" --date=short',
+      { cwd: root, encoding: 'utf8' },
+    );
+  } catch {
+    return null; // not a git repo, or no commits
+  }
+  const lines = log.split('\n').filter(Boolean);
+  // Group by YYYY-MM-DD
+  const byDay = new Map();
+  for (const line of lines) {
+    const [sha, date, subject] = line.split('\t');
+    if (!sha || !date || !subject) continue;
+    // Skip dependabot / automated bumps from the user-facing log —
+    // they noise up the changelog without adding product signal.
+    if (/^Bump /i.test(subject)) continue;
+    if (/^chore\(deps\)/i.test(subject)) continue;
+    if (/dependabot/i.test(subject)) continue;
+    if (!byDay.has(date)) byDay.set(date, []);
+    byDay.get(date).push({ sha, subject });
+  }
+
+  const rows = [
+    '# Changelog',
+    '',
+    '> Auto-generated from `git log` by `scripts/update-docs.mjs`.',
+    "> Don't hand-edit — your changes will be overwritten on the next build.",
+    '>',
+    '> Dependabot bumps and merge commits are filtered out; what remains is',
+    '> the shape of the project over time, written in the same imperative',
+    '> voice as the commits themselves.',
+    '',
+    '<!-- AUTO:log -->',
+  ];
+
+  for (const [date, items] of byDay) {
+    rows.push(`## ${date}`, '');
+    for (const c of items) {
+      rows.push(`- \`${c.sha}\` ${c.subject}`);
+    }
+    rows.push('');
+  }
+
+  rows.push('<!-- /AUTO:log -->');
+  return rows.join('\n');
+}
+
+async function writeChangelog() {
+  const body = renderChangelog();
+  if (!body) return;
+  await writeFile(CHANGELOG, body + '\n');
+}
+
 // ── main ──────────────────────────────────────────────────
 
 function buildReplaced(source, regionName, content) {
@@ -239,6 +303,8 @@ function buildReplaced(source, regionName, content) {
 
 async function main() {
   const checkOnly = process.argv.includes('--check');
+
+  // ── README auto-sections ──
   let source;
   try {
     source = await readFile(README, 'utf8');
@@ -257,18 +323,47 @@ async function main() {
     }
   }
 
-  if (next === source) {
-    console.log('[update-docs] README already up to date.');
+  const readmeStale = next !== source;
+
+  // ── CHANGELOG ──
+  const nextChangelog = renderChangelog();
+  let changelogStale = false;
+  if (nextChangelog) {
+    let existing = '';
+    try {
+      existing = await readFile(CHANGELOG, 'utf8');
+    } catch {
+      /* first run — treat as stale */
+    }
+    changelogStale = existing.trim() !== nextChangelog.trim();
+  }
+
+  if (!readmeStale && !changelogStale) {
+    console.log('[update-docs] README + CHANGELOG already up to date.');
     return;
   }
 
   if (checkOnly) {
-    console.error('[update-docs] README is stale — run `npm run docs:update`.');
+    const what = [
+      readmeStale && 'README',
+      changelogStale && 'CHANGELOG',
+    ]
+      .filter(Boolean)
+      .join(' + ');
+    console.error(
+      `[update-docs] ${what} is stale — run \`npm run docs:update\`.`,
+    );
     process.exit(1);
   }
 
-  await writeFile(README, next);
-  console.log('[update-docs] README regenerated.');
+  if (readmeStale) {
+    await writeFile(README, next);
+    console.log('[update-docs] README regenerated.');
+  }
+  if (changelogStale) {
+    await writeChangelog();
+    console.log('[update-docs] CHANGELOG regenerated.');
+  }
 }
 
 main().catch((e) => {

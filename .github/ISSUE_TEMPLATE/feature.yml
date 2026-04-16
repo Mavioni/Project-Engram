@@ -1,0 +1,35 @@
+name: Feature request
+description: Something new you want Engram to do.
+labels: ['feature']
+body:
+  - type: input
+    id: screen
+    attributes:
+      label: Screen / surface
+      description: Where in the app should this live?
+      placeholder: e.g. Dashboard, Engram, Chat, Settings, Player Card
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What should it do?
+      description: "Structure: 'When I [action], I want to [outcome].'"
+      placeholder: When I complete my first check-in of the day, I want a quiet moment of acknowledgement — something that says 'that counted'.
+    validations:
+      required: true
+
+  - type: textarea
+    id: feel
+    attributes:
+      label: How should it feel?
+      description: A mood, a reference, an adjective. Any of those work.
+      placeholder: Like Linear's subtle spring animations, or the way Day One acknowledges a long entry.
+
+  - type: textarea
+    id: avoid
+    attributes:
+      label: Anything to avoid?
+      description: Things you explicitly don't want.
+      placeholder: No modals. No gamified noise. No requiring signup.

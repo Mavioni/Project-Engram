@@ -16,6 +16,23 @@ git push origin main          # GitHub Actions builds + publishes
 
 ---
 
+## Workspace
+
+This repo is set up for working **with Claude** as your engineer-on-staff. The top-level files below are the shared workspace:
+
+| File | Who it's for | What it is |
+|---|---|---|
+| [`DEV_GUIDE.md`](./DEV_GUIDE.md) | **You** | Plain-English onramp: vocabulary, how to brief Claude, how to review what shipped |
+| [`CLAUDE.md`](./CLAUDE.md) | Every Claude session | House conventions: voice, testing rituals, what's safe to touch, what to ask first |
+| [`IDEAS.md`](./IDEAS.md) | Both | Living scratchpad — Now / Next / Later / Wild. Both of us write here. |
+| [`PROMPTS.md`](./PROMPTS.md) | **You** | Copy-paste brief templates: Feature / Bug / Polish / Rethink / Research |
+| [`CHANGELOG.md`](./CHANGELOG.md) | Both | Auto-generated timeline of every commit in plain language |
+| [`docs/`](./docs/) | Both | Per-subsystem explainers — architecture, store, theme, IRIS, Engram, routes, deploy |
+
+**For a non-coder working with Claude, read `DEV_GUIDE.md` first.** Everything else is reference material you pull when you need it.
+
+---
+
 ## Information architecture
 
 Three primary tabs (the only buttons in the bottom nav):
