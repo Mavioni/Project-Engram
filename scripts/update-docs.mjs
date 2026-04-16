@@ -347,16 +347,18 @@ async function main() {
   }
 
   if (checkOnly) {
-    const what = [
-      readmeStale && 'README',
-      changelogStale && 'CHANGELOG',
-    ]
-      .filter(Boolean)
-      .join(' + ');
-    console.error(
-      `[update-docs] ${what} is stale — run \`npm run docs:update\`.`,
-    );
-    process.exit(1);
+    // Only check the README, not the CHANGELOG. The CHANGELOG is
+    // inherently one commit behind (it can't include its own commit),
+    // so checking it would fail on every push. prebuild regenerates
+    // it during the build step, which runs after docs:check in CI.
+    if (readmeStale) {
+      console.error(
+        '[update-docs] README is stale — run `npm run docs:update`.',
+      );
+      process.exit(1);
+    }
+    console.log('[update-docs] README up to date (CHANGELOG skipped in check mode — regenerated at build time).');
+    return;
   }
 
   if (readmeStale) {
