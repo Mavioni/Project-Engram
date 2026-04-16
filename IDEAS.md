@@ -22,6 +22,12 @@ Mavioni: drop things anywhere. Claude: promote them up the list when we pick the
 
 - _(nothing active — waiting for the next brief)_
 
+## Just shipped
+
+- **Rituals library — 13 curated practices** across breath, meditation, grounding, body, gratitude, shadow, intention, compassion, arrival, review. Accessible at `/rituals`; daily suggestion surfaces on Dashboard. (_shipped 2026-04-17_)
+- **Procedural ambient music** — Web Audio pad plays during meditations + breath rituals. Zero bytes shipped, offline-friendly. Mute per-session + default toggle in Settings. (_shipped 2026-04-17_)
+- **Patterns** — mood-activity correlation math on the Dashboard once ≥ 14 days of data exist. "When you exercise, you feel N% better than average." (_shipped 2026-04-17_)
+
 ---
 
 ## Next
@@ -32,6 +38,8 @@ Mavioni: drop things anywhere. Claude: promote them up the list when we pick the
 
 ## Later
 
+- **Social scaffolding (v1).** Needs Supabase backend. Sketch: opt-in anonymous profile sharing; "see others with your archetype" — read-only aggregates, no DMs. Feels respectful, not performative.
+- **Crisis support.** Surface a subtle, always-accessible resources card in Settings: national hotlines, a couple of thoughtful articles, "when to talk to a human." Pattern detection: if mood trends below 0.3 for 5+ days, gentle inline nudge toward support. Tread carefully — never overreach.
 - **Engram evolution over time.** Your replica should reflect *recent* you, not just your IRIS snapshot. Idea: weighted blend of last N IRIS snapshots + derived signals from journal entries (anger tag → +shadow, deep notes → +depth). Surface the evolution curve somewhere.
 - **Archetype-vs-archetype battles.** Let users watch two archetypes battle each other — not their own replica. Maybe part of the Coliseum.
 - **Player Card sharing.** "Share my Player Card" → generates a static image + optional public URL. Requires backend; deferred.

@@ -77,6 +77,8 @@ Combat logic is deterministic (seeded PRNG) and pure — see `src/features/engra
 | `/journal` | Journal timeline |
 | `/calendar` | Month calendar |
 | `/insights` | Insights + charts |
+| `/rituals` | Rituals library — 13 curated practices |
+| `/rituals/:id` | RitualPlayer — guided playback with ambient audio |
 
 **Auth**
 
@@ -110,6 +112,7 @@ Combat logic is deterministic (seeded PRNG) and pure — see `src/features/engra
 | `src/features/iris/` | IRIS v4 — 24-facet assessment + Coliseum + Player Card export |
 | `src/features/journal/` | Journal timeline + Check-In flow |
 | `src/features/profile/` | Legacy You page (redirects to Settings) |
+| `src/features/rituals/` | Rituals library + guided player with ambient audio |
 | `src/features/settings/` | Theme toggle, account, plan, reset |
 | `src/features/subscription/` | Stripe-gated Pro pricing + upgrade |
 <!-- /AUTO:features -->
@@ -137,8 +140,8 @@ Combat logic is deterministic (seeded PRNG) and pure — see `src/features/engra
 |---|---|
 | Version | `0.1.0` |
 | Node | `>=20` |
-| Test files | 6 |
-| Test cases | 72 |
+| Test files | 9 |
+| Test cases | 100 |
 | Last doc sync | 2026-04-16 |
 <!-- /AUTO:stats -->
 

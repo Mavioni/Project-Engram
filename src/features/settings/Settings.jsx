@@ -141,6 +141,9 @@ export default function Settings() {
         </div>
       </Card>
 
+      {/* ── Ambient music toggle ── */}
+      <AmbientAudioCard />
+
       {/* ── Account (auth-aware) ── */}
       {auth.configured && (
         <Card style={{ marginBottom: 12 }}>
@@ -424,6 +427,78 @@ function StatusRow({ label, on }) {
         {on ? 'Connected' : 'Off'}
       </div>
     </div>
+  );
+}
+
+function AmbientAudioCard() {
+  const on = useStore((s) => s.settings?.ambientAudio ?? true);
+  const setSetting = useStore((s) => s.setSetting);
+  return (
+    <Card style={{ marginBottom: 12 }}>
+      <SectionTitle>Ambient music</SectionTitle>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 16, color: 'var(--ink)' }}>
+            {on ? 'On by default' : 'Off by default'}
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--ink-soft)',
+              fontStyle: 'italic',
+              marginTop: 2,
+            }}
+          >
+            Soft procedural pad during meditations and breath rituals.
+            You can always mute individual sessions.
+          </div>
+        </div>
+        <button
+          role="switch"
+          aria-checked={on}
+          aria-label={`Ambient music ${on ? 'on' : 'off'}`}
+          onClick={() => setSetting({ ambientAudio: !on })}
+          style={{
+            width: 54,
+            height: 30,
+            borderRadius: 999,
+            background: on ? 'var(--ink)' : 'var(--border)',
+            position: 'relative',
+            cursor: 'pointer',
+            border: 'none',
+            transition: 'background 260ms ease',
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: 3,
+              left: on ? 27 : 3,
+              width: 24,
+              height: 24,
+              borderRadius: '50%',
+              background: on ? 'var(--accent)' : '#ffffff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+              transition: 'left 260ms cubic-bezier(.3,1.3,.6,1)',
+              fontSize: 11,
+              display: 'grid',
+              placeItems: 'center',
+              color: on ? '#06060e' : 'var(--ink-dim)',
+            }}
+          >
+            {on ? '♪' : '—'}
+          </div>
+        </button>
+      </div>
+    </Card>
   );
 }
 

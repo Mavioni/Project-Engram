@@ -31,11 +31,15 @@ import {
   selectLastN,
   selectEntriesByDay,
   selectTotalNoteCount,
+  selectRitualStats,
 } from '../../lib/store.js';
 import { moodByScore } from '../../data/moods.js';
 import { noteKindById } from '../../data/notekinds.js';
 import { getType } from '../../data/enneagram.js';
 import { levelFromXp } from '../engram/rewards.js';
+import { suggestRitual, KINDS as RITUAL_KINDS } from '../../data/rituals.js';
+import { ALL_ACTIVITIES } from '../../data/activities.js';
+import { computeActivityLift } from '../../lib/patterns.js';
 import { greeting, prettyDate, currentStreak, dayKey, eachDayOfInterval, format } from '../../lib/time.js';
 
 export default function Home() {
@@ -55,6 +59,29 @@ export default function Home() {
   const todayMood = today ? moodByScore(today.mood) : null;
   const hasIris = Boolean(iris.enneagramType);
   const typeMeta = hasIris ? getType(iris.enneagramType) : null;
+
+  // selectRitualStats allocates a new object per call — wrap in
+  // useMemo against the stable `rituals` slice, same pattern as
+  // selectEntriesByDay, to avoid the zustand-5 re-render loop.
+  const ritualsSlice = useStore((s) => s.rituals);
+  const ritualStats = useMemo(
+    () => selectRitualStats({ rituals: ritualsSlice }),
+    [ritualsSlice],
+  );
+
+  // Suggested ritual of the day — deterministic per local date.
+  const suggestedRitual = useMemo(
+    () => suggestRitual({ dayKey: dayKey(), recentMood: today?.mood ?? null }),
+    [today],
+  );
+
+  // Patterns — only surface when there are enough days to say
+  // anything honest.
+  const activityLift = useMemo(
+    () => computeActivityLift(entries),
+    [entries],
+  );
+  const topPattern = activityLift[0] || null;
 
   // Seed today's arena challenge if IRIS is done and nothing's set yet.
   useEffect(() => {
@@ -173,6 +200,82 @@ export default function Home() {
           </div>
         )}
       </Card>
+
+      {/* ── Today's ritual ── */}
+      {suggestedRitual && (() => {
+        const k = RITUAL_KINDS[suggestedRitual.kind];
+        const color = k?.color || 'var(--accent)';
+        return (
+          <Card accent={color} style={{ marginBottom: 20, cursor: 'pointer' }}>
+            <button
+              onClick={() => navigate(`/rituals/${suggestedRitual.id}`)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 14,
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                textAlign: 'left',
+                cursor: 'pointer',
+                color: 'inherit',
+              }}
+            >
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: '50%',
+                  display: 'grid',
+                  placeItems: 'center',
+                  background: `color-mix(in srgb, ${color} 14%, transparent)`,
+                  flexShrink: 0,
+                }}
+              >
+                <Emoji code={suggestedRitual.emoji || k?.emoji} size={22} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  className="mono"
+                  style={{
+                    fontSize: 8,
+                    letterSpacing: '0.28em',
+                    color: 'var(--ink-dim)',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Today&apos;s practice
+                  {ritualStats.streak > 0 ? ` · ${ritualStats.streak} day streak` : ''}
+                </div>
+                <div
+                  style={{ fontSize: 16, color: 'var(--ink)', fontWeight: 400, marginTop: 2 }}
+                >
+                  {suggestedRitual.name}
+                </div>
+                <div
+                  className="mono"
+                  style={{ fontSize: 10, color: 'var(--ink-dim)', marginTop: 2, letterSpacing: '0.04em' }}
+                >
+                  {suggestedRitual.duration} min · {k?.label}
+                  {suggestedRitual.ambient ? ' · ♪' : ''}
+                </div>
+              </div>
+              <div
+                className="mono"
+                style={{
+                  fontSize: 9,
+                  letterSpacing: '0.22em',
+                  color: color,
+                  textTransform: 'uppercase',
+                }}
+              >
+                Begin →
+              </div>
+            </button>
+          </Card>
+        );
+      })()}
 
       {/* ── Daily challenge (only when IRIS done) ── */}
       {challengeFresh && challengeMeta && (
@@ -300,6 +403,62 @@ export default function Home() {
           <MoodSparkline byDay={byDay} days={30} />
         </>
       )}
+
+      {/* ── Patterns (needs ≥ 14 days of data) ── */}
+      {topPattern && (() => {
+        const a = ALL_ACTIVITIES.find((x) => x.id === topPattern.activityId);
+        if (!a) return null;
+        const positive = topPattern.lift > 0;
+        const pct = Math.round(Math.abs(topPattern.lift) * 100);
+        return (
+          <>
+            <SectionHeader linkLabel="More insights" linkTo="/insights">
+              A pattern we see
+            </SectionHeader>
+            <Card
+              accent={a.groupColor}
+              style={{ marginBottom: 24 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    display: 'grid',
+                    placeItems: 'center',
+                    background: `color-mix(in srgb, ${a.groupColor} 16%, transparent)`,
+                    flexShrink: 0,
+                  }}
+                >
+                  <Emoji code={a.emoji} size={22} label={a.label} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, color: 'var(--ink)', lineHeight: 1.5 }}>
+                    When you <strong style={{ color: a.groupColor }}>{a.label}</strong>,{' '}
+                    you feel{' '}
+                    <strong style={{ color: positive ? 'var(--good)' : 'var(--bad)' }}>
+                      {pct}% {positive ? 'better' : 'worse'}
+                    </strong>{' '}
+                    than average.
+                  </div>
+                  <div
+                    className="mono"
+                    style={{
+                      fontSize: 9,
+                      color: 'var(--ink-dim)',
+                      marginTop: 4,
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Based on {topPattern.count} days logged with this tag.
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </>
+        );
+      })()}
 
       {/* ── Calendar preview ── */}
       {entries.length > 0 && (

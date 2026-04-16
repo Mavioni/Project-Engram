@@ -30,6 +30,8 @@ const Engram = lazy(() => import('./features/engram/Engram.jsx'));
 const Settings = lazy(() => import('./features/settings/Settings.jsx'));
 const IrisRoute = lazy(() => import('./features/iris/IrisRoute.jsx'));
 const Pricing = lazy(() => import('./features/subscription/Pricing.jsx'));
+const Rituals = lazy(() => import('./features/rituals/Rituals.jsx'));
+const RitualPlayer = lazy(() => import('./features/rituals/RitualPlayer.jsx'));
 const SignIn = lazy(() => import('./features/auth/SignIn.jsx'));
 const TwoFactorChallenge = lazy(() =>
   import('./features/auth/TwoFactorChallenge.jsx'),
@@ -91,6 +93,8 @@ export default function App() {
             <Route path="/journal" element={<Journal />} />
             <Route path="/calendar" element={<Calendar />} />
             <Route path="/insights" element={<Insights />} />
+            <Route path="/rituals" element={<Rituals />} />
+            <Route path="/rituals/:id" element={<RitualPlayer />} />
 
             {/* Auth */}
             <Route path="/signin" element={<SignIn />} />

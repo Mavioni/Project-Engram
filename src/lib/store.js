@@ -62,6 +62,20 @@ const initialEngram = () => ({
   dailyChallenge: null, // { day, archetype, completed } — one per local day, surfaced on Dashboard
 });
 
+// Rituals: the user's practice history + streak.
+// Each completion: { id, day, at, durationSeconds }
+// `last30` keeps only the 30 most recent completions so the store
+// doesn't grow unbounded. The count + unique-days derivation is
+// computed by selectors.
+const initialRituals = () => ({
+  last30: [],
+});
+
+// Settings: user preferences that don't fit elsewhere.
+const initialSettings = () => ({
+  ambientAudio: true, // default-on; muting respects user choice and persists
+});
+
 // Level from XP. Mirrors src/features/engram/rewards.js:levelFromXp,
 // duplicated here so the store has no feature-folder import cycles.
 const levelFromXp = (xp) => {
@@ -78,6 +92,8 @@ export const useStore = create(
       iris: initialIris(),
       subscription: initialSubscription(),
       engram: initialEngram(),
+      rituals: initialRituals(),
+      settings: initialSettings(),
       entries: [],
       insights: [], // cached Claude outputs
       chatThreads: [],
@@ -285,6 +301,48 @@ export const useStore = create(
         }),
       acknowledgeLevelUp: () =>
         set((s) => ({ engram: { ...s.engram, pendingLevelUp: null } })),
+
+      // ── Rituals ──
+      // Log a completed ritual. Award XP (scaled by duration, capped
+      // so long rituals don't dominate). Flags a level-up if crossed,
+      // using the same mechanism as awardXp.
+      completeRitual: ({ id, durationSeconds }) =>
+        set((s) => {
+          const now = new Date().toISOString();
+          const day = dayKey();
+          const completion = {
+            id,
+            day,
+            at: now,
+            durationSeconds: durationSeconds | 0,
+          };
+          const next30 = [completion, ...(s.rituals.last30 || [])].slice(0, 30);
+
+          // XP: +15 base, +1 per 30s of actual practice, capped at +40
+          const durationBonus = Math.min(
+            25,
+            Math.floor((durationSeconds | 0) / 30),
+          );
+          const delta = 15 + durationBonus;
+          const prevLevel = s.engram.level || 1;
+          const nextXp = (s.engram.xp || 0) + delta;
+          const nextLevel = Math.floor(Math.sqrt(nextXp / 100)) + 1;
+
+          return {
+            rituals: { ...s.rituals, last30: next30 },
+            engram: {
+              ...s.engram,
+              xp: nextXp,
+              level: nextLevel,
+              pendingLevelUp:
+                nextLevel > prevLevel ? nextLevel : s.engram.pendingLevelUp,
+            },
+          };
+        }),
+
+      // ── Settings ──
+      setSetting: (patch) =>
+        set((s) => ({ settings: { ...s.settings, ...patch } })),
       // Called by the Dashboard on mount — if today doesn't yet
       // have a challenge, pick one. The archetype is chosen from
       // the set the user hasn't defeated yet (or cycles through
@@ -315,13 +373,15 @@ export const useStore = create(
       // ── Reset (with confirm in UI) ──
       hardReset: () =>
         set((s) => ({
-          // Theme preference survives a hard reset — it's a UI choice,
-          // not user content.
+          // Theme + audio preference survive a hard reset — UI
+          // choices, not user content.
           theme: s.theme,
+          settings: s.settings,
           profile: initialProfile(),
           iris: initialIris(),
           subscription: initialSubscription(),
           engram: initialEngram(),
+          rituals: initialRituals(),
           entries: [],
           insights: [],
           chatThreads: [],
@@ -400,4 +460,29 @@ export function selectActivityFrequency(state, days) {
 
 export function selectTotalNoteCount(state) {
   return state.entries.reduce((n, e) => n + (e.notes?.length || 0), 0);
+}
+
+export function selectRitualStats(state) {
+  const last30 = state.rituals?.last30 || [];
+  const uniqueDays = new Set(last30.map((c) => c.day));
+  const total = last30.length;
+  // Was today touched?
+  const todayKey = dayKey();
+  const completedToday = last30.some((c) => c.day === todayKey);
+  // Consecutive-day streak counted backward from today.
+  let streak = 0;
+  const now = new Date();
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const k = dayKey(d);
+    if (uniqueDays.has(k)) {
+      streak += 1;
+    } else if (i === 0) {
+      continue; // grace: no ritual yet today, don't break yesterday's streak
+    } else {
+      break;
+    }
+  }
+  return { total, uniqueDays: uniqueDays.size, completedToday, streak };
 }

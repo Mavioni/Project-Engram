@@ -30,7 +30,16 @@ const seed = (patch = {}) => {
       history: [],
     },
     subscription: { tier: 'free', aiCreditsUsed: 0, aiCreditsResetAt: null },
-    engram: { xp: 0, level: 1, defeated: [], battleHistory: [] },
+    engram: {
+      xp: 0,
+      level: 1,
+      defeated: [],
+      battleHistory: [],
+      pendingLevelUp: null,
+      dailyChallenge: null,
+    },
+    rituals: { last30: [] },
+    settings: { ambientAudio: true },
     theme: 'light',
     ...patch,
   });
@@ -131,10 +140,12 @@ describe('Engram — render smoke', () => {
 });
 
 describe('Settings — render smoke', () => {
-  it('mounts and shows the theme switch', () => {
+  it('mounts and shows theme + audio switches', () => {
     render(withRouter(<Settings />));
     expect(screen.getByText(/appearance/i)).toBeInTheDocument();
-    expect(screen.getByRole('switch')).toBeInTheDocument();
+    expect(screen.getByText(/ambient music/i)).toBeInTheDocument();
+    // Two role="switch" elements: theme toggle + ambient audio
+    expect(screen.getAllByRole('switch')).toHaveLength(2);
   });
 
   it('reflects the current theme', () => {

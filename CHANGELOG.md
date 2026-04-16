@@ -10,6 +10,7 @@
 <!-- AUTO:log -->
 ## 2026-04-16
 
+- `80ccd0f` Set up the workspace: guide, prompts, ideas, docs, templates, changelog
 - `d1a4088` Close the loop: XP wiring, level-up toast, daily challenges, seal tiles
 - `608bbed` Redesign IA: 3-tab nav + light theme + Engram replica + auto-docs
 - `e2c5d1f` Player Card hero on Home + TopBar logo + route swap
