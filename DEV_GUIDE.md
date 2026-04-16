@@ -4,6 +4,23 @@
 
 ---
 
+## Starting a new session (the only thing you need to remember)
+
+**Say anything. Even "hi."**
+
+That's it. Every Claude session on this repo has a protocol (in `CLAUDE.md`) that tells it to orient itself *before* responding to your first message. Claude will:
+
+1. Run `npm run status` automatically
+2. Read the recent commits, `IDEAS.md`, and `CHANGELOG.md`
+3. Open its reply with a tight status summary + one proposed next move
+4. Wait for you to nod or redirect
+
+You don't need to re-brief it on what we've been building. You don't need to say "here's where we are." You can literally say "hi," "continue," "what's next?", or jump straight to a brief — all four paths end with you and Claude on the same page inside one message.
+
+If you want to see the status yourself at any time, run `npm run status` in the terminal. Same output Claude sees.
+
+---
+
 ## The mental model
 
 You are the **creative director**. Claude is the **engineer-on-staff**.

@@ -122,6 +122,7 @@ async function regionScripts() {
     dev: 'Local dev server (Vite)',
     build: 'Production build to `dist/` (runs `prebuild` first)',
     preview: 'Serve the built bundle',
+    status: 'One-shot orientation: branch, commits, IDEAS, test count, live URL — Claude sessions run this first',
     icons: 'Rasterize `public/icon.svg` → PNG manifest icons',
     prebuild: 'Runs before `build` — generates icons + updates docs',
     lint: 'ESLint on `src/`, zero warnings tolerated',

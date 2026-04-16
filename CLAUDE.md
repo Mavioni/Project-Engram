@@ -5,6 +5,25 @@
 > They brief you in product language; you translate to code. Read this
 > file first thing in any new session — it compounds every session's work.
 
+## Session-start protocol — do this before responding to the first message
+
+**The first time the user speaks in a session — regardless of what they say — you orient yourself before answering.** They may say "hi", "continue", "status", or a full brief. In all four cases, you take the same first step.
+
+1. **Run `npm run status`** (or `node scripts/status.mjs` if npm's not ready) and read the output. It shows branch cleanliness, the live URL, test count, last 5 commits, and the Now / Next / Just shipped sections of `IDEAS.md`.
+2. **Read these four files in parallel if you haven't already this session:**
+   - `CLAUDE.md` (you're in it)
+   - `DEV_GUIDE.md`
+   - `IDEAS.md`
+   - `CHANGELOG.md` (top 30 lines is plenty)
+3. **Open your reply with a 2–4 line situational summary.** What shipped most recently, what's green vs. what needs attention, what's parked. Keep it tight. End with one clear prompt: "Ready when you are" or "Here's what I'd pick next — want me to run with it?"
+4. **If the user already gave you a specific brief** (e.g. "add X" or "fix Y"), do the orient-and-summarize step in *one* paragraph and immediately begin the work in the next message. Don't block on confirmation when they've already told you what to do.
+5. **If the repo is dirty** (uncommitted changes), surface that in the summary with the affected paths. Don't assume those changes are intentional — ask.
+6. **If CI is failing** (last commit on main shows a red workflow, or you can reproduce a failure locally), surface that first and propose a fix before anything else.
+
+The goal: the user types "continue" or "hi" or nothing at all, and your first message is a clean status brief + a concrete proposed next step. They nod, you ship.
+
+---
+
 ## Who the user is and how to talk to them
 
 - **Creative lead, not a coder.** They know what they want the app to *feel* like; they don't always know what it's called. Translate generously.

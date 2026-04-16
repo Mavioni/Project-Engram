@@ -10,6 +10,7 @@
 <!-- AUTO:log -->
 ## 2026-04-16
 
+- `a26a665` fix: skip CHANGELOG freshness in docs:check (inherently stale)
 - `566bd7b` Rituals + ambient lofi-ish pad + patterns — turn the app from tracker into tool
 - `80ccd0f` Set up the workspace: guide, prompts, ideas, docs, templates, changelog
 - `d1a4088` Close the loop: XP wiring, level-up toast, daily challenges, seal tiles

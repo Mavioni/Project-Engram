@@ -6,6 +6,22 @@
 
 ---
 
+## The simplest one — starting a new session
+
+```
+hi
+```
+
+or
+
+```
+continue
+```
+
+Both work. CLAUDE.md's session-start protocol kicks in automatically: Claude runs `npm run status`, reads IDEAS.md, and opens its reply with a status brief + proposed next move. You don't need to brief it.
+
+---
+
 ## Feature
 
 ```

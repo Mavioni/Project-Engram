@@ -10,6 +10,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --host --port 4173",
+    "status": "node scripts/status.mjs",
     "icons": "node scripts/gen-icons.mjs",
     "docs:update": "node scripts/update-docs.mjs",
     "docs:check": "node scripts/update-docs.mjs --check",

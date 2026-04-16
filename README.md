@@ -124,6 +124,7 @@ Combat logic is deterministic (seeded PRNG) and pure — see `src/features/engra
 | `npm run dev` | Local dev server (Vite) |
 | `npm run build` | Production build to `dist/` (runs `prebuild` first) |
 | `npm run preview` | Serve the built bundle |
+| `npm run status` | One-shot orientation: branch, commits, IDEAS, test count, live URL — Claude sessions run this first |
 | `npm run icons` | Rasterize `public/icon.svg` → PNG manifest icons |
 | `npm run docs:update` | Regenerate auto-sections in README |
 | `npm run docs:check` | Verify README auto-sections are up to date (exits non-zero if stale) |
