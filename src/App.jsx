@@ -5,6 +5,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import Nav from './components/Nav.jsx';
+import TopBar from './components/TopBar.jsx';
 import AuthGate from './components/AuthGate.jsx';
 import Backdrop from './components/Backdrop.jsx';
 import Home from './features/home/Home.jsx';
@@ -54,6 +55,9 @@ export default function App() {
       {/* Fixed ambient sacred-geometry layer behind everything. */}
       <Backdrop />
 
+      {/* Top bar with Engram logo — hidden on full-screen flows. */}
+      <TopBar />
+
       {/* Routed content sits above the backdrop. */}
       <div
         style={{
@@ -62,22 +66,20 @@ export default function App() {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          // 100dvh falls back in browsers without dvh support via the
-          // outer layout; older `100vh` fallback had to go because it
-          // duplicated the key in an inline style object.
           minHeight: '100dvh',
         }}
       >
         <Suspense fallback={<LazyFallback />}>
-          {/* key on pathname re-triggers the Screen fade-in on every route change */}
           <Routes location={location} key={location.pathname}>
-            {/* IRIS v4 is the site's front door: landing / coliseum /
-                assessment / results / Player Card export. From here
-                the user transfers to /home (the extended Engram app). */}
-            <Route path="/" element={<IrisRoute />} />
+            {/* Home dashboard — Player Card hero + journal + stats.
+                This is the site's front door now. */}
+            <Route path="/" element={<Home />} />
 
-            {/* Extended site — the "after IRIS" experience */}
-            <Route path="/home" element={<Home />} />
+            {/* IRIS v4 assessment — the 16-scenario simulation,
+                Coliseum, and Player Card export. */}
+            <Route path="/iris" element={<IrisRoute />} />
+
+            {/* Extended site */}
             <Route path="/journal" element={<Journal />} />
             <Route path="/journal/checkin" element={<CheckIn />} />
             <Route path="/calendar" element={<Calendar />} />
@@ -88,7 +90,7 @@ export default function App() {
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signin/2fa" element={<TwoFactorChallenge />} />
 
-            {/* Authenticated routes (require sign-in + 2FA challenge if enrolled) */}
+            {/* Authenticated routes */}
             <Route
               path="/account"
               element={

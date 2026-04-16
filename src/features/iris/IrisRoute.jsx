@@ -28,7 +28,7 @@ export default function IrisRoute() {
   );
 
   const onExit = useCallback(() => {
-    navigate('/home');
+    navigate('/');
   }, [navigate]);
 
   return (

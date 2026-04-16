@@ -14,9 +14,9 @@
 import { NavLink, useLocation } from 'react-router-dom';
 
 // Routes where the nav should hide (full-screen flows).
-// `/` is the IRIS v4 landing — full-screen experience, the bottom
+// `/iris` is the IRIS v4 assessment — full-screen experience, the bottom
 // nav would compete with the 3D scene and its own action buttons.
-const HIDDEN_PREFIXES = ['/', '/onboarding', '/checkout'];
+const HIDDEN_PREFIXES = ['/iris', '/onboarding', '/checkout'];
 
 function IconHome({ color }) {
   return (
@@ -69,7 +69,7 @@ function IconYou({ color }) {
 }
 
 const TABS = [
-  { to: '/home', label: 'Home', Icon: IconHome },
+  { to: '/', label: 'Home', Icon: IconHome },
   { to: '/journal', label: 'Journal', Icon: IconJournal },
   { to: '/calendar', label: 'Calendar', Icon: IconCalendar },
   { to: '/insights', label: 'Insights', Icon: IconInsights },
@@ -107,7 +107,7 @@ export default function Nav() {
         <NavLink
           key={tab.to}
           to={tab.to}
-          end={tab.to === '/home'}
+          end={tab.to === '/'}
           style={({ isActive }) => ({
             flex: 1,
             height: '100%',
