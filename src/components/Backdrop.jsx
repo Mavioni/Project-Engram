@@ -5,18 +5,39 @@
 // dark mode shows cosmic blues/purples; light mode uses muted
 // warm ink that barely registers — enough to give texture but
 // nowhere near enough to distract.
+//
+// Once the user has an IRIS result, the outer vignette picks up
+// their archetype's signature color — a soft atmospheric tint,
+// not a spotlight. The geometries stay neutral so the brand
+// texture is consistent across archetypes.
 // ─────────────────────────────────────────────────────────────
 
 import { FlowerOfLife, MetatronsCube } from './SacredGeometry.jsx';
 import { useTheme } from '../lib/theme.js';
+import { useStore } from '../lib/store.js';
+import { getType } from '../data/enneagram.js';
 
 export default function Backdrop() {
   const { theme } = useTheme();
   const dark = theme === 'dark';
+  const enneagramType = useStore((s) => s.iris?.enneagramType);
+  const archetypeColor = enneagramType ? getType(enneagramType)?.color : null;
+
+  // Base fog color per theme. When an archetype is present, blend
+  // a small amount of its hue into the edge — enough to register
+  // as atmosphere, not enough to compete with page content.
+  const fogDark = 'rgba(6,6,14,0.7)';
+  const fogLight = 'rgba(245,244,238,0.7)';
+  const edge = archetypeColor
+    ? `color-mix(in srgb, ${archetypeColor} ${dark ? 22 : 14}%, ${dark ? fogDark : fogLight})`
+    : dark
+      ? fogDark
+      : fogLight;
 
   return (
     <div
       aria-hidden="true"
+      data-archetype={archetypeColor || ''}
       style={{
         position: 'fixed',
         inset: 0,
@@ -59,9 +80,7 @@ export default function Backdrop() {
         style={{
           position: 'absolute',
           inset: 0,
-          background: dark
-            ? 'radial-gradient(circle at center, transparent 35%, rgba(6,6,14,0.7) 100%)'
-            : 'radial-gradient(circle at center, transparent 40%, rgba(245,244,238,0.7) 100%)',
+          background: `radial-gradient(circle at center, transparent ${dark ? 35 : 40}%, ${edge} 100%)`,
         }}
       />
     </div>

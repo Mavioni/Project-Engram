@@ -6,6 +6,7 @@ import Calendar from '../features/calendar/Calendar.jsx';
 import Insights from '../features/insights/Insights.jsx';
 import Engram from '../features/engram/Engram.jsx';
 import Settings from '../features/settings/Settings.jsx';
+import Backdrop from '../components/Backdrop.jsx';
 import { useStore } from '../lib/store.js';
 import { dayKey } from '../lib/time.js';
 
@@ -136,6 +137,23 @@ describe('Engram — render smoke', () => {
     render(withRouter(<Engram />));
     expect(screen.getByText(/level 1 replica/i)).toBeInTheDocument();
     expect(screen.getByText(/domain attributes/i)).toBeInTheDocument();
+  });
+});
+
+describe('Backdrop — render smoke', () => {
+  // Backdrop surfaces the archetype color via a data attribute so the
+  // tint is testable without depending on jsdom parsing `color-mix`.
+  it('mounts neutrally when IRIS is absent', () => {
+    const { container } = render(<Backdrop />);
+    const root = container.querySelector('[data-archetype]');
+    expect(root?.getAttribute('data-archetype')).toBe('');
+  });
+
+  it('picks up the archetype color once IRIS is set', () => {
+    seed({ iris: fakeIris }); // type 1 → '#e8e8e8'
+    const { container } = render(<Backdrop />);
+    const root = container.querySelector('[data-archetype]');
+    expect(root?.getAttribute('data-archetype')?.toLowerCase()).toBe('#e8e8e8');
   });
 });
 

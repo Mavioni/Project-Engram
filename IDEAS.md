@@ -24,6 +24,7 @@ Mavioni: drop things anywhere. Claude: promote them up the list when we pick the
 
 ## Just shipped
 
+- **Archetype-tinted ambient backdrop.** Once IRIS is complete, the outer vignette picks up the archetype's signature color at low opacity — atmosphere, not spotlight. Works in both themes. (_shipped 2026-04-16_)
 - **Rituals library — 13 curated practices** across breath, meditation, grounding, body, gratitude, shadow, intention, compassion, arrival, review. Accessible at `/rituals`; daily suggestion surfaces on Dashboard. (_shipped 2026-04-17_)
 - **Procedural ambient music** — Web Audio pad plays during meditations + breath rituals. Zero bytes shipped, offline-friendly. Mute per-session + default toggle in Settings. (_shipped 2026-04-17_)
 - **Patterns** — mood-activity correlation math on the Dashboard once ≥ 14 days of data exist. "When you exercise, you feel N% better than average." (_shipped 2026-04-17_)
@@ -32,7 +33,6 @@ Mavioni: drop things anywhere. Claude: promote them up the list when we pick the
 
 ## Next
 
-- **Archetype-colored Dashboard tint.** When the user has an IRIS result, softly tint the ambient backdrop and accents to their archetype's color. Big atmospheric payoff, zero added complexity. (_proposed by Claude, 2026-04-14_)
 - **First-run onboarding polish.** Right now a brand-new user lands on the Dashboard with an "Map yourself first" CTA. That's fine but could be warmer — a single welcome line ("Hi. This is Engram. It learns you.") + one softly highlighted action.
 - **Level-up sound.** A single, short, tasteful chime on level-up. Respect `prefers-reduced-motion` and a mute toggle in Settings.
 
