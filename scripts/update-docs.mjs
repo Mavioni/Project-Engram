@@ -33,11 +33,17 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, '..');
 const README = resolve(root, 'README.md');
 const CHANGELOG = resolve(root, 'CHANGELOG.md');
+let docSyncDate = new Date().toISOString().slice(0, 10);
 
 // ── helpers ────────────────────────────────────────────────
 
 async function readJSON(p) {
   return JSON.parse(await readFile(p, 'utf8'));
+}
+
+function extractDocSyncDate(source) {
+  const match = source.match(/\| Last doc sync \| ([^|]+) \|/);
+  return match?.[1]?.trim() || null;
 }
 
 function listRoutesFromApp(source) {
@@ -206,7 +212,6 @@ async function regionStats() {
   }
   const tests = await countTests(resolve(root, 'src'));
 
-  const now = new Date().toISOString().slice(0, 10);
   return [
     `| Item | Value |`,
     `|---|---|`,
@@ -214,7 +219,7 @@ async function regionStats() {
     `| Node | \`${pkg.engines?.node || '—'}\` |`,
     `| Test files | ${tests.files} |`,
     `| Test cases | ${tests.cases} |`,
-    `| Last doc sync | ${now} |`,
+    `| Last doc sync | ${docSyncDate} |`,
   ].join('\n');
 }
 
@@ -315,6 +320,12 @@ async function main() {
   } catch {
     console.error('[update-docs] README.md not found — skipping');
     return;
+  }
+
+  // In check mode, keep the existing date stable so CI does not fail
+  // just because the calendar changed since the last docs:update run.
+  if (checkOnly) {
+    docSyncDate = extractDocSyncDate(source) || docSyncDate;
   }
 
   let next = source;
