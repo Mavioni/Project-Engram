@@ -83,7 +83,7 @@ export default function App() {
           <Routes location={location} key={location.pathname}>
             {/* Primary routes (bottom nav) */}
             <Route path="/" element={<Home />} />
-            <Route path="/chat" element={<AuthGate><Chat /></AuthGate>} />
+            <Route path="/chat" element={<Chat />} />
             <Route path="/engram" element={<Engram />} />
 
             {/* Secondary routes (in-page links) */}
