@@ -356,7 +356,13 @@ export default function IRISApp({ onComplete, onExit, initialPhase = "landing" }
 
   const restart = () => transition(() => { setPhase("landing"); setQIdx(0); setAnswers([]); setShowDetails(false); const s = {}; FACETS.forEach(f => { s[f.id] = 0; }); setFacetScores(s); setEnneagramType(null); setEnneagramScores({}); });
 
-  const fonts = <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet" />;
+  // Google Fonts are already loaded once at app boot via index.html's
+  // preload+onload pattern; re-injecting a <link rel="stylesheet"> on
+  // every IRIS render was causing fatal boot-screen trips on networks
+  // that block Google Fonts, plus duplicate stylesheet warnings.
+  // Kept as an empty fragment so the downstream `{fonts}` callsites
+  // don't need structural edits.
+  const fonts = null;
   const wrap = { height: "100vh", background: "#06060e", color: "#e0e0e0", fontFamily: "'Cormorant Garamond',Georgia,serif", opacity: fadeIn ? 1 : 0, transition: "opacity .35s ease", display: "flex", flexDirection: "column", overflow: "hidden" };
   const m = { fontFamily: "'DM Mono',monospace" };
 

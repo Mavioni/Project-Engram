@@ -391,6 +391,19 @@ export const useStore = create(
       name: STORAGE_KEY,
       version: SCHEMA_VERSION,
       storage: createJSONStorage(() => localStorage),
+      // CRITICAL: without `merge`, zustand's persist does a shallow
+      // replace on hydration — any slice that's absent from the
+      // persisted blob (because it was added in a later release:
+      // engram, rituals, settings, chatThreads, etc.) ends up as
+      // `undefined` on reload, causing null-deref crashes across
+      // the Dashboard, Arena, and Chat screens.
+      //
+      // This merge keeps every NEW slice's default while overlaying
+      // whatever the user actually has persisted.
+      merge: (persisted, current) => {
+        if (!persisted || typeof persisted !== 'object') return current;
+        return { ...current, ...persisted };
+      },
       migrate: (state, version) => {
         // Future migrations go here — bump SCHEMA_VERSION and handle
         // each step. For v1 just pass through.

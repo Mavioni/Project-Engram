@@ -736,8 +736,10 @@ function MiniCalendar({ byDay, days }) {
 
 function EngramTeaser({ engram, typeMeta }) {
   const navigate = useNavigate();
-  const level = levelFromXp(engram.xp);
-  const defeated = (engram.defeated || []).length;
+  // Older persisted schemas may not have an `engram` slice at all —
+  // guard every access so the dashboard never crashes on upgrade.
+  const level = levelFromXp(engram?.xp || 0);
+  const defeated = (engram?.defeated || []).length;
   return (
     <Card accent={typeMeta.color} style={{ marginBottom: 24, cursor: 'pointer' }}>
       <button

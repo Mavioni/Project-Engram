@@ -22,10 +22,12 @@ import { useStore } from '../../lib/store.js';
 import { KINDS, ritualById } from '../../data/rituals.js';
 import { createAmbientPlayer } from '../../lib/ambient-audio.js';
 
-// Extracted so React's purity rule doesn't flag nowMs() inside
+// Extracted so React's purity rule doesn't flag Date.now() inside
 // the component body — this is a trivial helper invoked from event
 // handlers where reading the wall clock is the right call.
-const nowMs = () => nowMs();
+// (Previous implementation was `const nowMs = () => nowMs();` which
+// is unbounded recursion — every ritual click blew the stack.)
+const nowMs = () => Date.now();
 
 export default function RitualPlayer() {
   const { id } = useParams();

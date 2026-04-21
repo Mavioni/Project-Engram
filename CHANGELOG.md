@@ -10,6 +10,8 @@
 <!-- AUTO:log -->
 ## 2026-04-21
 
+- `531ee9a` chore: remove stray shell-artifact files from prior commit
+- `14a93e5` fix + feat: crash-proof + engram orb with radial strands
 - `64b18ee` feat(engram): living 3D artifact at the top of the Player Card
 - `9809a4f` docs(vision): canonical VISION.md aligned with real product
 - `8378398` feat(self-mirror): encrypted local-first reflection surface at /insights/self-mirror

@@ -76,7 +76,7 @@ export default function Chat() {
     }
   };
 
-  if (!iris.enneagramType) {
+  if (!iris?.enneagramType) {
     return (
       <Screen
         label="Chat"

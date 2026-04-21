@@ -75,7 +75,9 @@ export default function Engram() {
   }
 
   const handleBattle = (archetype) => {
-    const seed = seedFrom(`${engram.battleHistory.length}:${archetype}:${Date.now()}`);
+    // Defensive: older persisted schemas can lack battleHistory.
+    const history = engram?.battleHistory || [];
+    const seed = seedFrom(`${history.length}:${archetype}:${Date.now()}`);
     const result = runBattle({ userFacetScores: facetScores, archetype, seed });
     recordBattle(result);
     setBattle(result);

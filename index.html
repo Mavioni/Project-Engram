@@ -193,23 +193,32 @@
         }
         window.addEventListener('error', function (e) {
           var target = e.target;
-          // Only trip the fatal boot screen when the MAIN BUNDLE can't
-          // load — i.e. a <script> or stylesheet failure. Image / font /
-          // any other resource failure must NOT kill the app (we used
-          // to take down the whole UI when a single Twemoji SVG
-          // 404'd from jsdelivr — that bug is what this narrows).
+          // This handler's one job: show a fatal screen if the MAIN
+          // BUNDLE can't load so the user sees *why* instead of a
+          // blank screen. It must NOT act as a catch-all for React
+          // runtime errors — React has its own ErrorBoundary for that.
+          //
+          // Trip the fatal screen only when:
+          //   - a SCRIPT tag failed to load, AND
+          //   - React hasn't mounted yet (the boot indicator is still
+          //     in #root). Once React mounts, its ErrorBoundary owns
+          //     error presentation; this listener stays silent.
+          //
+          // Previously this captured ANY error event with a message,
+          // which turned every uncaught runtime error into a fatal
+          // "Engram couldn't start" screen. It also captured image
+          // load failures (Twemoji CDN), which is what killed the
+          // check-in flow. Both classes are now explicitly excluded.
           var tag = target && target.tagName;
-          var isFatal =
+          var reactMounted = !document.getElementById('engram-boot');
+          var isBundleFail =
             tag === 'SCRIPT' ||
             (tag === 'LINK' && (target.rel === 'stylesheet' || target.rel === 'modulepreload'));
-          if (isFatal) {
+          if (isBundleFail && !reactMounted) {
             showError('Failed to load resource:\n' + (target.src || target.href));
-          } else if (!target || target === window) {
-            if (e.message) showError(e.message);
           }
-          // Non-fatal resource failures (img, audio, etc.) are silently
-          // ignored here; components are expected to render their own
-          // onError fallback.
+          // Everything else — image 404s, runtime errors after React
+          // mounts, async rejections — is someone else's problem.
         }, true);
         // If nothing has replaced the boot indicator after 20 seconds,
         // prompt the user to reload.
