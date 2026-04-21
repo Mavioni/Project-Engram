@@ -32,7 +32,10 @@ const AuthContext = createContext({
 });
 
 export function AuthProvider({ children }) {
-  const [ready, setReady] = useState(false);
+  // Lazy-init `ready` so the no-supabase case never needs a sync setState
+  // inside the effect below (satisfies react-hooks/set-state-in-effect
+  // introduced with eslint-plugin-react-hooks@7.1.1).
+  const [ready, setReady] = useState(() => !hasSupabase());
   const [session, setSession] = useState(null);
   const [aal, setAal] = useState(null);
   const [factors, setFactors] = useState(null);
@@ -57,8 +60,14 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    refresh();
-    if (!hasSupabase()) return;
+    if (!hasSupabase()) return undefined;
+    // Defer the initial refresh to a microtask so setState never
+    // runs synchronously during the effect's commit phase — keeps
+    // react-hooks/set-state-in-effect (eslint-plugin-react-hooks
+    // 7.1+) happy while preserving the fire-and-forget semantics.
+    queueMicrotask(() => {
+      void refresh();
+    });
     // Subscribe to auth changes and refresh the entire derived state.
     const unsub = onAuthChange(({ event, session: nextSession }) => {
       setSession(nextSession);
