@@ -7,6 +7,11 @@ import { AuthProvider } from './lib/auth.jsx';
 import { applyTheme } from './lib/theme.js';
 import './styles/global.css';
 
+function routerBasename(baseUrl) {
+  if (!baseUrl || baseUrl === '/') return '/';
+  return baseUrl.replace(/\/+$/, '');
+}
+
 // ─────────────────────────────────────────────────────────────
 // Apply the persisted theme to <html> BEFORE React mounts so
 // there's no flash of the wrong background. We read the raw
@@ -33,7 +38,7 @@ try {
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <BrowserRouter basename={routerBasename(import.meta.env.BASE_URL)}>
         <AuthProvider>
           <App />
         </AuthProvider>
