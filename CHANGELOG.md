@@ -10,6 +10,7 @@
 <!-- AUTO:log -->
 ## 2026-04-21
 
+- `859d6c4` fix: crash swarm — six classes of button-click crashes eliminated
 - `531ee9a` chore: remove stray shell-artifact files from prior commit
 - `14a93e5` fix + feat: crash-proof + engram orb with radial strands
 - `64b18ee` feat(engram): living 3D artifact at the top of the Player Card

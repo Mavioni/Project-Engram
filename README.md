@@ -151,9 +151,9 @@ Combat logic is deterministic (seeded PRNG) and pure — see `src/features/engra
 
 ## Dependencies
 <!-- AUTO:deps -->
-**11 production dependencies**
+**12 production dependencies**
 
-`@react-three/drei@10.7.7`, `@react-three/fiber@9.6.0`, `@supabase/supabase-js@2.104.0`, `date-fns@4.1.0`, `dexie@4.0.8`, `react@19.2.5`, `react-dom@19.2.5`, `react-router-dom@7.14.1`, `recharts@3.8.1`, `three@0.184.0`, `zustand@5.0.12`
+`@react-three/drei@10.7.7`, `@react-three/fiber@9.6.0`, `@react-three/postprocessing@3.0.4`, `@supabase/supabase-js@2.104.0`, `date-fns@4.1.0`, `dexie@4.0.8`, `react@19.2.5`, `react-dom@19.2.5`, `react-router-dom@7.14.1`, `recharts@3.8.1`, `three@0.184.0`, `zustand@5.0.12`
 
 **18 dev dependencies**
 
