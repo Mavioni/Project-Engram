@@ -8,8 +8,19 @@
 > voice as the commits themselves.
 
 <!-- AUTO:log -->
+## 2026-04-21
+
+- `c3b8f16` Build(deps): bump @supabase/supabase-js in the supabase group (#21)
+- `dd49f80` Build(deps-dev): bump eslint-plugin-react-hooks in the dev-tooling group (#22)
+- `f7480cb` Build(deps): bump three from 0.183.2 to 0.184.0 (#23)
+- `acc5a9a` Fix local-first navigation (#28)
+- `a404944` Fix local-first navigation (#27)
+- `6ade71d` Stabilize docs sync date check (#26)
+- `5918a1f` Build Codex-native development system (#24)
+
 ## 2026-04-16
 
+- `47d10d4` Archetype-tint the ambient Backdrop once IRIS is complete (#20)
 - `9e17eb1` Session-start protocol: say "hi" and Claude orients itself
 - `a26a665` fix: skip CHANGELOG freshness in docs:check (inherently stale)
 - `566bd7b` Rituals + ambient lofi-ish pad + patterns — turn the app from tracker into tool

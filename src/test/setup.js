@@ -1,4 +1,9 @@
 import '@testing-library/jest-dom/vitest';
+// fake-indexeddb/auto installs a polyfill on globalThis.indexedDB so Dexie
+// (used by the self-mirror feature) can open databases under happy-dom.
+// Cheap to load when no IDB is touched; required when any self-mirror
+// test runs. Keep this at the top so Dexie's module-init sees it.
+import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 

@@ -79,6 +79,7 @@ Combat logic is deterministic (seeded PRNG) and pure — see `src/features/engra
 | `/insights` | Insights + charts |
 | `/rituals` | Rituals library — 13 curated practices |
 | `/rituals/:id` | RitualPlayer — guided playback with ambient audio |
+| `/insights/self-mirror` | /insights/self-mirror |
 
 **Auth**
 
@@ -113,6 +114,7 @@ Combat logic is deterministic (seeded PRNG) and pure — see `src/features/engra
 | `src/features/journal/` | Journal timeline + Check-In flow |
 | `src/features/profile/` | Legacy You page (redirects to Settings) |
 | `src/features/rituals/` | Rituals library + guided player with ambient audio |
+| `src/features/self-mirror/` | self-mirror |
 | `src/features/settings/` | Theme toggle, account, plan, reset |
 | `src/features/subscription/` | Stripe-gated Pro pricing + upgrade |
 <!-- /AUTO:features -->
@@ -141,20 +143,20 @@ Combat logic is deterministic (seeded PRNG) and pure — see `src/features/engra
 |---|---|
 | Version | `0.1.0` |
 | Node | `>=20` |
-| Test files | 9 |
-| Test cases | 102 |
-| Last doc sync | 2026-04-16 |
+| Test files | 14 |
+| Test cases | 165 |
+| Last doc sync | 2026-04-21 |
 <!-- /AUTO:stats -->
 
 ## Dependencies
 <!-- AUTO:deps -->
-**8 production dependencies**
+**9 production dependencies**
 
-`@supabase/supabase-js@2.103.1`, `date-fns@4.1.0`, `react@19.2.5`, `react-dom@19.2.5`, `react-router-dom@7.14.1`, `recharts@3.8.1`, `three@0.183.2`, `zustand@5.0.12`
+`@supabase/supabase-js@2.104.0`, `date-fns@4.1.0`, `dexie@4.0.8`, `react@19.2.5`, `react-dom@19.2.5`, `react-router-dom@7.14.1`, `recharts@3.8.1`, `three@0.184.0`, `zustand@5.0.12`
 
-**17 dev dependencies**
+**18 dev dependencies**
 
-`@eslint/js@9.39.4`, `@testing-library/jest-dom@6.9.1`, `@testing-library/react@16.3.2`, `@testing-library/user-event@14.6.1`, `@types/react@19.2.14`, `@types/react-dom@19.2.3`, `@vitejs/plugin-react@5.2.0`, `eslint@9.12.0`, `eslint-plugin-react@7.37.1`, `eslint-plugin-react-hooks@7.0.1`, `globals@17.5.0`, `happy-dom@20.9.0`, `prettier@3.8.3`, `sharp@0.34.5`, `vite@7.3.2`, `vite-plugin-pwa@1.2.0`, `vitest@4.1.4`
+`@eslint/js@9.39.4`, `@testing-library/jest-dom@6.9.1`, `@testing-library/react@16.3.2`, `@testing-library/user-event@14.6.1`, `@types/react@19.2.14`, `@types/react-dom@19.2.3`, `@vitejs/plugin-react@5.2.0`, `eslint@9.12.0`, `eslint-plugin-react@7.37.1`, `eslint-plugin-react-hooks@7.1.1`, `fake-indexeddb@6.0.0`, `globals@17.5.0`, `happy-dom@20.9.0`, `prettier@3.8.3`, `sharp@0.34.5`, `vite@7.3.2`, `vite-plugin-pwa@1.2.0`, `vitest@4.1.4`
 <!-- /AUTO:deps -->
 
 All data is stored locally via Zustand with a `localStorage` persistence layer. Cloud sync, Claude insights, and Stripe billing activate only when the corresponding env vars are present — the app degrades gracefully to local-only without them.

@@ -32,6 +32,7 @@ const IrisRoute = lazy(() => import('./features/iris/IrisRoute.jsx'));
 const Pricing = lazy(() => import('./features/subscription/Pricing.jsx'));
 const Rituals = lazy(() => import('./features/rituals/Rituals.jsx'));
 const RitualPlayer = lazy(() => import('./features/rituals/RitualPlayer.jsx'));
+const SelfMirror = lazy(() => import('./features/self-mirror/SelfMirrorPage.jsx'));
 const SignIn = lazy(() => import('./features/auth/SignIn.jsx'));
 const TwoFactorChallenge = lazy(() =>
   import('./features/auth/TwoFactorChallenge.jsx'),
@@ -95,6 +96,17 @@ export default function App() {
             <Route path="/insights" element={<Insights />} />
             <Route path="/rituals" element={<Rituals />} />
             <Route path="/rituals/:id" element={<RitualPlayer />} />
+            {/* Encrypted local reflection surface — ADR-0001.
+                Auth-gated so the passphrase unlock sits behind
+                the same login ritual as pricing + chat. */}
+            <Route
+              path="/insights/self-mirror"
+              element={
+                <AuthGate>
+                  <SelfMirror />
+                </AuthGate>
+              }
+            />
 
             {/* Auth */}
             <Route path="/signin" element={<SignIn />} />
