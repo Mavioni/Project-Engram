@@ -21,6 +21,8 @@
     "test:ci": "vitest run"
   },
   "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.0",
     "@supabase/supabase-js": "^2.104.0",
     "date-fns": "^4.1.0",
     "dexie": "^4.0.8",

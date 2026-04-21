@@ -13,6 +13,7 @@
 
 import Card from './Card.jsx';
 import Button from './Button.jsx';
+import EngramArtifact from './EngramArtifact.jsx';
 import {
   Sigil,
   EnneagramGlyph,
@@ -84,6 +85,17 @@ export default function PlayerCard({ onDownload }) {
       </div>
 
       <div style={{ position: 'relative' }}>
+        {/* ── Engram artifact — living 3D representation of
+              consciousness. Every dot, line, and particle is
+              procedurally derived from the user's data: IRIS
+              facet scores (skeleton), enneagram type (spiral
+              phase), recent mood (particle hue), journal + ritual
+              volume (particle count), battle wins (domain pulse),
+              XP/level (drift speed + scale). Nothing authored. ── */}
+        <div style={{ marginBottom: 18 }}>
+          <EngramArtifact accentColor={t.color} />
+        </div>
+
         {/* ── Header: glyph + type number + name ── */}
         <div style={{ textAlign: 'center', marginBottom: 18 }}>
           <div style={{ position: 'relative', display: 'inline-block' }}>

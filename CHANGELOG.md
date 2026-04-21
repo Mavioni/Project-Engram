@@ -8,6 +8,19 @@
 > voice as the commits themselves.
 
 <!-- AUTO:log -->
+## 2026-04-16
+
+- `9455af4` Sync docs with the archetype-tinted Backdrop
+- `47d10d4` Archetype-tint the ambient Backdrop once IRIS is complete (#20)
+- `9e17eb1` Session-start protocol: say "hi" and Claude orients itself
+- `a26a665` fix: skip CHANGELOG freshness in docs:check (inherently stale)
+- `566bd7b` Rituals + ambient lofi-ish pad + patterns — turn the app from tracker into tool
+- `80ccd0f` Set up the workspace: guide, prompts, ideas, docs, templates, changelog
+- `d1a4088` Close the loop: XP wiring, level-up toast, daily challenges, seal tiles
+- `608bbed` Redesign IA: 3-tab nav + light theme + Engram replica + auto-docs
+- `e2c5d1f` Player Card hero on Home + TopBar logo + route swap
+- `8e9a84d` chore: regenerate PNG icons from sharp 0.34.5
+
 ## 2026-04-21
 
 - `9809a4f` docs(vision): canonical VISION.md aligned with real product
@@ -20,18 +33,6 @@
 - `a404944` Fix local-first navigation (#27)
 - `6ade71d` Stabilize docs sync date check (#26)
 - `5918a1f` Build Codex-native development system (#24)
-
-## 2026-04-16
-
-- `47d10d4` Archetype-tint the ambient Backdrop once IRIS is complete (#20)
-- `9e17eb1` Session-start protocol: say "hi" and Claude orients itself
-- `a26a665` fix: skip CHANGELOG freshness in docs:check (inherently stale)
-- `566bd7b` Rituals + ambient lofi-ish pad + patterns — turn the app from tracker into tool
-- `80ccd0f` Set up the workspace: guide, prompts, ideas, docs, templates, changelog
-- `d1a4088` Close the loop: XP wiring, level-up toast, daily challenges, seal tiles
-- `608bbed` Redesign IA: 3-tab nav + light theme + Engram replica + auto-docs
-- `e2c5d1f` Player Card hero on Home + TopBar logo + route swap
-- `8e9a84d` chore: regenerate PNG icons from sharp 0.34.5
 
 ## 2026-04-15
 
