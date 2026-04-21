@@ -8,6 +8,20 @@
 > voice as the commits themselves.
 
 <!-- AUTO:log -->
+## 2026-04-21
+
+- `64b18ee` feat(engram): living 3D artifact at the top of the Player Card
+- `9809a4f` docs(vision): canonical VISION.md aligned with real product
+- `8378398` feat(self-mirror): encrypted local-first reflection surface at /insights/self-mirror
+- `f256830` fix(auth): satisfy react-hooks/set-state-in-effect after plugin bump
+- `c3b8f16` Build(deps): bump @supabase/supabase-js in the supabase group (#21)
+- `dd49f80` Build(deps-dev): bump eslint-plugin-react-hooks in the dev-tooling group (#22)
+- `f7480cb` Build(deps): bump three from 0.183.2 to 0.184.0 (#23)
+- `acc5a9a` Fix local-first navigation (#28)
+- `a404944` Fix local-first navigation (#27)
+- `6ade71d` Stabilize docs sync date check (#26)
+- `5918a1f` Build Codex-native development system (#24)
+
 ## 2026-04-16
 
 - `9455af4` Sync docs with the archetype-tinted Backdrop
@@ -20,19 +34,6 @@
 - `608bbed` Redesign IA: 3-tab nav + light theme + Engram replica + auto-docs
 - `e2c5d1f` Player Card hero on Home + TopBar logo + route swap
 - `8e9a84d` chore: regenerate PNG icons from sharp 0.34.5
-
-## 2026-04-21
-
-- `9809a4f` docs(vision): canonical VISION.md aligned with real product
-- `8378398` feat(self-mirror): encrypted local-first reflection surface at /insights/self-mirror
-- `f256830` fix(auth): satisfy react-hooks/set-state-in-effect after plugin bump
-- `c3b8f16` Build(deps): bump @supabase/supabase-js in the supabase group (#21)
-- `dd49f80` Build(deps-dev): bump eslint-plugin-react-hooks in the dev-tooling group (#22)
-- `f7480cb` Build(deps): bump three from 0.183.2 to 0.184.0 (#23)
-- `acc5a9a` Fix local-first navigation (#28)
-- `a404944` Fix local-first navigation (#27)
-- `6ade71d` Stabilize docs sync date check (#26)
-- `5918a1f` Build Codex-native development system (#24)
 
 ## 2026-04-15
 

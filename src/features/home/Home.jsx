@@ -24,7 +24,7 @@ import Button from '../../components/Button.jsx';
 import Emoji from '../../components/Emoji.jsx';
 import Empty from '../../components/Empty.jsx';
 import PlayerCard from '../../components/PlayerCard.jsx';
-import { SeedOfLife, Merkaba } from '../../components/SacredGeometry.jsx';
+import { Merkaba } from '../../components/SacredGeometry.jsx';
 import {
   useStore,
   selectTodayEntry,
@@ -93,20 +93,15 @@ export default function Home() {
     challenge && challenge.day === dayKey() && challenge.archetype;
   const challengeMeta = challengeFresh ? getType(challenge.archetype) : null;
 
+  // The outer <TopBar /> already displays the "Engram" brand. Don't
+  // echo it in the page title — that's what produced the "website in
+  // a website" double-header stack. Show the greeting + date, and only
+  // render a title when the user has a name set.
   return (
     <Screen
       label={greeting()}
-      title={profile.name ? profile.name : 'Engram'}
+      title={profile.name || undefined}
       subtitle={prettyDate(new Date())}
-      glyph={
-        <SeedOfLife
-          size={36}
-          color={typeMeta?.color || 'var(--accent)'}
-          opacity={0.45}
-          spin={180}
-          strokeWidth={0.5}
-        />
-      }
     >
       {/* ── Player Card hero (or IRIS CTA) ── */}
       {hasIris ? (

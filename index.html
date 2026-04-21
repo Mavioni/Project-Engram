@@ -8,6 +8,7 @@
     />
     <meta name="theme-color" content="#06060e" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Engram" />
     <meta name="format-detection" content="telephone=no" />
@@ -191,12 +192,24 @@
             '</div>';
         }
         window.addEventListener('error', function (e) {
-          var isResource = e.target && e.target !== window && (e.target.src || e.target.href);
-          if (isResource) {
-            showError('Failed to load resource:\n' + (e.target.src || e.target.href));
-          } else if (e.message) {
-            showError(e.message);
+          var target = e.target;
+          // Only trip the fatal boot screen when the MAIN BUNDLE can't
+          // load — i.e. a <script> or stylesheet failure. Image / font /
+          // any other resource failure must NOT kill the app (we used
+          // to take down the whole UI when a single Twemoji SVG
+          // 404'd from jsdelivr — that bug is what this narrows).
+          var tag = target && target.tagName;
+          var isFatal =
+            tag === 'SCRIPT' ||
+            (tag === 'LINK' && (target.rel === 'stylesheet' || target.rel === 'modulepreload'));
+          if (isFatal) {
+            showError('Failed to load resource:\n' + (target.src || target.href));
+          } else if (!target || target === window) {
+            if (e.message) showError(e.message);
           }
+          // Non-fatal resource failures (img, audio, etc.) are silently
+          // ignored here; components are expected to render their own
+          // onError fallback.
         }, true);
         // If nothing has replaced the boot indicator after 20 seconds,
         // prompt the user to reload.

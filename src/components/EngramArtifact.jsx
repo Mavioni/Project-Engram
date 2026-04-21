@@ -1,28 +1,30 @@
 /* eslint-disable react/no-unknown-property */
-// react/no-unknown-property fires on every R3F intrinsic (meshStandardMaterial,
-// pointLight, bufferGeometry, sizeAttenuation, etc.) because the rule only
-// knows the DOM/SVG property set. R3F's scene graph elements are first-class
-// inside a <Canvas>; the rule is a false positive here.
+// react/no-unknown-property fires on every R3F intrinsic
+// (meshStandardMaterial, pointLight, bufferGeometry, etc.) because
+// the rule only knows the DOM/SVG property set. R3F's scene-graph
+// elements are first-class inside a <Canvas>; the rule is a false
+// positive here.
 // ─────────────────────────────────────────────────────────────
-// <EngramArtifact /> — the living 3D artifactual representation
-// of the user's consciousness, rendered at the top of the Player
-// Card.
+// <EngramArtifact /> — the living 3D representation of the user's
+// consciousness. An orb. Iris-like. 24 luminous strands radiate
+// from a single pupil at the centre.
 // ─────────────────────────────────────────────────────────────
-// Every dot, line, and particle is mapped to the user's data:
+// VISUAL METAPHOR
 //
-//   24 anchor points       ← IRIS facet scores (Fibonacci-sphere
-//                             distribution; radius = f(score))
-//   point colour           ← domain colour of the owning facet
-//   edges within domains   ← structural skeleton (4 facets / domain)
-//   cross-domain ring      ← the Fibonacci spiral, seeded by
-//                             enneagram type (9 distinct phase offsets)
-//   particle field density ← journal entries + ritual completions
-//   particle field hue     ← recent mood (OKLCH, perceptually uniform)
-//   particle drift speed   ← XP-derived level (floor(sqrt(xp/100))+1)
-//   facet pulse brightness ← recent battle wins in that domain
+//   Pupil (centre)            ← single point of self
+//   24 radial strands         ← IRIS facets, each a fibre
+//   strand length             ← facet score (high score = long)
+//   strand colour             ← owning domain's colour
+//   strand glow intensity     ← recent battle wins in that domain
+//   outer iris ring           ← enneagram type phase (spun wire)
+//   containing sphere (glass) ← the outer shell of the orb
+//   particle dust inside      ← journal + ritual volume
+//   dust hue                  ← trailing-7d mood (OKLCH uniform)
+//   dust drift speed          ← XP-derived level
+//   slow rotation on Y        ← the orb is alive
 //
-// Pure procedural — nothing is authored, everything is derived.
-// Runs at 60 fps on a mid-range phone (≤24 anchors + ~120 particles).
+// Nothing authored. Everything encoded. Every action the user takes
+// changes the artifact.
 // ─────────────────────────────────────────────────────────────
 
 import { Suspense, useMemo, useRef } from 'react';
@@ -31,30 +33,34 @@ import * as THREE from 'three';
 import { DOMAINS } from '../data/enneagram.js';
 import { useStore } from '../lib/store.js';
 
-// Facet → domain index map (same order as DOMAINS[].facets concat).
+// Facets flattened in the canonical DOMAINS order → 24.
 const FACETS = DOMAINS.flatMap((d, di) =>
   d.facets.map((name) => ({ name, domain: di })),
 );
 const FACET_COUNT = FACETS.length; // 24
 
+// Outer sphere radius (local units) — the eyeball's shell.
+const SHELL_RADIUS = 1.6;
+// Pupil radius.
+const CORE_RADIUS = 0.12;
+// Max strand length — reserves a gap inside the shell.
+const STRAND_REACH = 1.35;
+
 /**
- * Fibonacci-sphere sampling: gives visually-even coverage at any count.
- * Deterministic — facet index → fixed sphere position — so the skeleton
- * only moves when the score changes, never just because.
+ * Fibonacci-sphere direction for the i-th strand. Gives visually-even
+ * coverage for any count. Deterministic per facet index.
  */
-function fibonacciSpherePoint(i, n, phaseOffset = 0) {
+function fibonacciDirection(i, n, phaseOffset = 0) {
   const golden = Math.PI * (3 - Math.sqrt(5));
-  const y = 1 - (i / (n - 1)) * 2; // [-1, 1]
+  const y = 1 - (i / (n - 1)) * 2;
   const r = Math.sqrt(1 - y * y);
   const theta = golden * i + phaseOffset;
   return [Math.cos(theta) * r, y, Math.sin(theta) * r];
 }
 
 /**
- * OKLCH → RGB conversion via a compact reference implementation so
- * mood colour shifts are perceptually uniform. Happy-dom doesn't have
- * CSS.supports('color', 'oklch(...)') so we can't offload to the
- * browser; this is ~20 lines and runs once per render.
+ * OKLCH → linear RGB. Inlined so the hue mapping is identical in the
+ * browser and in happy-dom tests (where CSS oklch isn't parseable).
  */
 function oklchToRgb(L, C, H) {
   const hRad = (H * Math.PI) / 180;
@@ -72,41 +78,100 @@ function oklchToRgb(L, C, H) {
   return [r, g, b2].map((v) => Math.min(1, Math.max(0, v)));
 }
 
-/**
- * Mood score (0..4) → OKLCH triple. Lower mood = cooler/darker,
- * higher mood = warmer/brighter. Hue sweeps 240° (cyan) → 40° (amber)
- * across the five-emoji scale.
- */
-function moodToOklch(score, fallback = 2) {
-  const m = typeof score === 'number' ? score : fallback;
-  const t = Math.max(0, Math.min(4, m)) / 4; // 0..1
-  const L = 0.55 + t * 0.2;
+function moodToOklch(score) {
+  const m = typeof score === 'number' ? score : 2;
+  const t = Math.max(0, Math.min(4, m)) / 4;
+  const L = 0.58 + t * 0.18;
   const C = 0.1 + t * 0.08;
-  const H = 240 - t * 200; // 240→40
+  const H = 240 - t * 200;
   return oklchToRgb(L, C, H);
 }
 
 /**
- * Anchor — a facet's vertex in 3D space. Opacity/emissive intensity
- * encodes recent activity on that domain (battles won, check-ins).
+ * A single radial strand — a cylinder from just outside the pupil
+ * out to `length` along direction `dir`. End-capped with a small
+ * glowing bead so each facet has a distinct terminus.
  */
-function Anchor({ position, color, score, pulse }) {
+function Strand({ direction, length, color, pulse }) {
+  const group = useRef();
+  const bead = useRef();
+
+  // Orient the cylinder along `direction`. Cylinders default to +Y,
+  // so rotate from (0,1,0) to our direction.
+  const { position, quaternion, strandLen } = useMemo(() => {
+    const dir = new THREE.Vector3(direction[0], direction[1], direction[2]).normalize();
+    const outerLen = Math.max(0.15, length);
+    const mid = dir.clone().multiplyScalar((CORE_RADIUS + 0.02 + outerLen) / 2);
+    const q = new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      dir,
+    );
+    return { position: mid, quaternion: q, strandLen: outerLen };
+  }, [direction, length]);
+
+  useFrame((state) => {
+    // Breath the strand gently; brighten on pulse.
+    const t = state.clock.getElapsedTime();
+    const breath = 0.9 + Math.sin(t * 1.2 + direction[0] * 4 + direction[2] * 2) * 0.08;
+    if (group.current) {
+      group.current.scale.setScalar(breath);
+    }
+    if (bead.current) {
+      const boost = 1 + pulse * 0.5 * Math.abs(Math.sin(t * 2.2));
+      bead.current.scale.setScalar(boost);
+    }
+  });
+
+  const tipPos = useMemo(() => {
+    const d = new THREE.Vector3(direction[0], direction[1], direction[2]).normalize();
+    return d.multiplyScalar(CORE_RADIUS + 0.02 + strandLen);
+  }, [direction, strandLen]);
+
+  return (
+    <group ref={group}>
+      {/* Fibre */}
+      <mesh position={position} quaternion={quaternion}>
+        <cylinderGeometry args={[0.005, 0.018, strandLen, 6, 1, true]} />
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={0.55 + pulse * 0.35}
+          toneMapped={false}
+        />
+      </mesh>
+      {/* Tip bead */}
+      <mesh ref={bead} position={tipPos}>
+        <sphereGeometry args={[0.032, 10, 10]} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={0.9 + pulse * 1.2}
+          toneMapped={false}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Pupil — dense, dark core at centre. Breathes slowly.
+ */
+function Pupil({ accent }) {
   const mesh = useRef();
   useFrame((state) => {
     if (!mesh.current) return;
-    // Breathe gently; pulse harder when the domain has recent wins.
     const t = state.clock.getElapsedTime();
-    const breath = 1 + Math.sin(t * 1.2 + position[0] * 3) * 0.05;
-    const boost = 1 + pulse * 0.3 * Math.abs(Math.sin(t * 2.5));
-    mesh.current.scale.setScalar((0.012 + score * 0.028) * breath * boost);
+    mesh.current.scale.setScalar(1 + Math.sin(t * 0.8) * 0.04);
   });
   return (
-    <mesh ref={mesh} position={position}>
-      <sphereGeometry args={[1, 12, 12]} />
+    <mesh ref={mesh}>
+      <sphereGeometry args={[CORE_RADIUS, 24, 24]} />
       <meshStandardMaterial
-        color={color}
-        emissive={color}
-        emissiveIntensity={0.4 + pulse * 0.6}
+        color="#0a0a10"
+        emissive={accent}
+        emissiveIntensity={0.35}
+        roughness={0.4}
+        metalness={0.2}
         toneMapped={false}
       />
     </mesh>
@@ -114,102 +179,76 @@ function Anchor({ position, color, score, pulse }) {
 }
 
 /**
- * Edges — structural skeleton. Within-domain edges connect the four
- * facets of each domain into a tetrahedron. A thin Fibonacci spiral
- * threads all 24 anchors in order to hint at the full shape.
+ * Outer iris ring — a wire circle tilted by the enneagram type's
+ * phase offset. Nine archetypes = nine distinct ring orientations,
+ * so type-4 and type-8 read as visually distinct at a glance even
+ * at identical facet scores.
  */
-function Skeleton({ anchors, enneagramType }) {
-  const { domainLines, spiralLine } = useMemo(() => {
-    // Within-domain edges: 4 facets form 6 pairs per domain.
-    const byDomain = new Map();
-    anchors.forEach((a, i) => {
-      if (!byDomain.has(a.domain)) byDomain.set(a.domain, []);
-      byDomain.get(a.domain).push(i);
-    });
-    const dl = [];
-    byDomain.forEach((indices, domain) => {
-      for (let i = 0; i < indices.length; i += 1) {
-        for (let j = i + 1; j < indices.length; j += 1) {
-          dl.push({
-            a: anchors[indices[i]].pos,
-            b: anchors[indices[j]].pos,
-            color: DOMAINS[domain].color,
-            strength: (anchors[indices[i]].score + anchors[indices[j]].score) / 2,
-          });
-        }
-      }
-    });
-    // Fibonacci spiral: enneagram type shifts the phase so each
-    // archetype reads as a distinct curve wrapping the skeleton.
-    const spiralPositions = [];
-    const phase = ((enneagramType || 1) - 1) * ((2 * Math.PI) / 9);
-    for (let i = 0; i < FACET_COUNT; i += 1) {
-      spiralPositions.push(
-        ...fibonacciSpherePoint(i, FACET_COUNT, phase).map((v) => v * 0.72),
-      );
+function IrisRing({ enneagramType, accent }) {
+  const ref = useRef();
+  const { geometry, tilt } = useMemo(() => {
+    const segs = 128;
+    const positions = new Float32Array((segs + 1) * 3);
+    const r = SHELL_RADIUS * 0.98;
+    for (let i = 0; i <= segs; i += 1) {
+      const a = (i / segs) * Math.PI * 2;
+      positions[i * 3] = Math.cos(a) * r;
+      positions[i * 3 + 1] = 0;
+      positions[i * 3 + 2] = Math.sin(a) * r;
     }
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const phase = ((enneagramType || 1) - 1) / 9;
     return {
-      domainLines: dl,
-      spiralLine: new Float32Array(spiralPositions),
+      geometry: geom,
+      tilt: [phase * Math.PI * 0.6, phase * Math.PI * 1.2, phase * Math.PI * 0.4],
     };
-  }, [anchors, enneagramType]);
+  }, [enneagramType]);
+
+  useFrame((_, delta) => {
+    if (!ref.current) return;
+    ref.current.rotation.y += delta * 0.04;
+  });
 
   return (
-    <group>
-      {domainLines.map((ln, i) => (
-        <EdgeLine key={i} from={ln.a} to={ln.b} color={ln.color} opacity={0.25 + ln.strength * 0.55} />
-      ))}
-      {/* Spiral thread — lineBasicMaterial on a bufferGeometry */}
-      <line>
-        <bufferGeometry>
-          <bufferAttribute
-            attach="attributes-position"
-            count={FACET_COUNT}
-            array={spiralLine}
-            itemSize={3}
-          />
-        </bufferGeometry>
-        <lineBasicMaterial color="#ffffff" transparent opacity={0.12} />
+    <group ref={ref} rotation={tilt}>
+      <line geometry={geometry}>
+        <lineBasicMaterial color={accent} transparent opacity={0.22} />
       </line>
     </group>
   );
 }
 
-function EdgeLine({ from, to, color, opacity }) {
-  const positions = useMemo(
-    () => new Float32Array([...from, ...to]),
-    [from, to],
-  );
+/**
+ * Outer glass shell — wireframe icosphere, very subtle, suggests
+ * the orb contains something rather than is something.
+ */
+function Shell() {
   return (
-    <line>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          count={2}
-          array={positions}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <lineBasicMaterial color={color} transparent opacity={opacity} />
-    </line>
+    <mesh>
+      <icosahedronGeometry args={[SHELL_RADIUS, 2]} />
+      <meshBasicMaterial
+        color="#ffffff"
+        transparent
+        opacity={0.04}
+        wireframe
+        toneMapped={false}
+      />
+    </mesh>
   );
 }
 
 /**
- * Particle field — cloud of points around the skeleton. Count encodes
- * total user activity (journal entries + rituals), hue encodes recent
- * mood. Drifts slowly; faster for higher levels.
+ * Particle dust inside the shell — the atmosphere of the orb.
+ * Count = journal + ritual volume. Hue = recent mood.
  */
-function Particles({ count, hue, driftSpeed }) {
+function Dust({ count, hue, driftSpeed }) {
   const ref = useRef();
   const { positions, speeds } = useMemo(() => {
-    const n = Math.max(24, Math.min(240, count));
+    const n = Math.max(40, Math.min(260, count));
     const p = new Float32Array(n * 3);
     const s = new Float32Array(n);
-    // Seeded PRNG (mulberry32) so particle positions are reproducible
-    // per-count — also keeps this useMemo pure per the react-hooks
-    // purity rule. Seed derives from count so fields of different
-    // sizes don't collide visually.
+    // Seeded mulberry32 so particle layout is pure (react-hooks/purity).
     let seed = 0x9e3779b9 ^ (n * 0x85ebca77);
     const rand = () => {
       seed |= 0;
@@ -219,25 +258,27 @@ function Particles({ count, hue, driftSpeed }) {
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
     for (let i = 0; i < n; i += 1) {
-      const r = 1.3 + rand() * 0.6;
+      // Uniform in a ball of radius just inside the shell.
+      const r = (0.3 + rand() * (SHELL_RADIUS - 0.35)) * (0.5 + rand() * 0.5);
       const theta = rand() * Math.PI * 2;
       const phi = Math.acos(2 * rand() - 1);
       p[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       p[i * 3 + 1] = r * Math.cos(phi);
       p[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
-      s[i] = 0.5 + rand() * 1.5;
+      s[i] = 0.4 + rand() * 1.6;
     }
     return { positions: p, speeds: s };
   }, [count]);
 
-  useFrame((state, delta) => {
+  useFrame((state) => {
     if (!ref.current) return;
     const pos = ref.current.geometry.attributes.position.array;
     const t = state.clock.getElapsedTime();
     for (let i = 0; i < pos.length / 3; i += 1) {
-      const si = speeds[i] * driftSpeed;
-      pos[i * 3] += Math.sin(t * si + i) * delta * 0.015;
-      pos[i * 3 + 1] += Math.cos(t * si * 0.7 + i) * delta * 0.012;
+      const si = speeds[i] * driftSpeed * 0.01;
+      pos[i * 3] += Math.sin(t * speeds[i] + i) * si;
+      pos[i * 3 + 1] += Math.cos(t * speeds[i] * 0.8 + i) * si * 0.9;
+      pos[i * 3 + 2] += Math.sin(t * speeds[i] * 0.6 + i * 0.3) * si * 0.8;
     }
     ref.current.geometry.attributes.position.needsUpdate = true;
   });
@@ -254,9 +295,9 @@ function Particles({ count, hue, driftSpeed }) {
       </bufferGeometry>
       <pointsMaterial
         color={new THREE.Color(hue[0], hue[1], hue[2])}
-        size={0.02}
+        size={0.025}
         transparent
-        opacity={0.7}
+        opacity={0.55}
         sizeAttenuation
         toneMapped={false}
       />
@@ -265,42 +306,48 @@ function Particles({ count, hue, driftSpeed }) {
 }
 
 /**
- * Scene root — auto-rotate, ambient lighting, composition.
+ * Scene composer — slow Y rotation gives the orb life without
+ * demanding attention. Reduced-motion clients still get the scene,
+ * but with autorotate disabled.
  */
-function Scene({ anchors, enneagramType, particleCount, moodHue, driftSpeed, level }) {
+function Scene({ strands, enneagramType, particleCount, moodHue, driftSpeed, level, accent, reducedMotion }) {
   const group = useRef();
-  useFrame((state, delta) => {
+  useFrame((state, _delta) => {
     if (!group.current) return;
-    group.current.rotation.y += delta * 0.08;
-    // Subtle level-driven scale breath.
+    if (!reducedMotion) {
+      group.current.rotation.y += _delta * 0.12;
+    }
     const t = state.clock.getElapsedTime();
-    const s = 1 + Math.sin(t * 0.6) * 0.02 + level * 0.004;
+    const s = 1 + Math.sin(t * 0.5) * 0.015 + level * 0.002;
     group.current.scale.setScalar(s);
   });
   return (
     <>
-      <ambientLight intensity={0.45} />
-      <pointLight position={[3, 3, 3]} intensity={0.7} />
-      <group ref={group} rotation={[0.25, 0, 0]}>
-        <Skeleton anchors={anchors} enneagramType={enneagramType} />
-        {anchors.map((a, i) => (
-          <Anchor
+      <ambientLight intensity={0.6} />
+      <pointLight position={[3, 3, 3]} intensity={0.4} color="#ffffff" />
+      <pointLight position={[-2, -2, -2]} intensity={0.3} color={accent} />
+      <group ref={group}>
+        <Pupil accent={accent} />
+        {strands.map((s, i) => (
+          <Strand
             key={i}
-            position={a.pos}
-            color={a.color}
-            score={a.score}
-            pulse={a.pulse}
+            direction={s.direction}
+            length={s.length}
+            color={s.color}
+            pulse={s.pulse}
           />
         ))}
-        <Particles count={particleCount} hue={moodHue} driftSpeed={driftSpeed} />
+        <IrisRing enneagramType={enneagramType} accent={accent} />
+        <Shell />
+        <Dust count={particleCount} hue={moodHue} driftSpeed={driftSpeed} />
       </group>
     </>
   );
 }
 
 /**
- * Derive all the encoding inputs from the store in one memoised pass.
- * This is the single place that knows how data → artifact geometry.
+ * Derive every input the scene needs from the store. Single place
+ * where store → geometry mapping lives.
  */
 function useEngramEncoding() {
   const iris = useStore((s) => s.iris);
@@ -312,8 +359,7 @@ function useEngramEncoding() {
     const facetScores = iris?.facetScores || {};
     const enneagramType = iris?.enneagramType || 1;
 
-    // Domain-level recent-win pulse: +1 for each winning-round the
-    // user took in that domain across the recent battle history.
+    // Per-domain recent-win pulse.
     const domainPulse = new Array(DOMAINS.length).fill(0);
     const history = engram?.battleHistory || [];
     history.slice(0, 10).forEach((b) => {
@@ -327,38 +373,40 @@ function useEngramEncoding() {
     const maxPulse = Math.max(1, ...domainPulse);
     const normPulse = domainPulse.map((p) => p / maxPulse);
 
-    const anchors = FACETS.map(({ name, domain }, i) => ({
-      pos: fibonacciSpherePoint(i, FACET_COUNT, 0),
-      color: DOMAINS[domain].color,
-      score: typeof facetScores[name] === 'number' ? facetScores[name] : 0.5,
-      pulse: normPulse[domain],
-      domain,
-    }));
+    // One strand per facet. Length scales with the score inside a
+    // sensible floor so empty scores still have presence.
+    const strands = FACETS.map(({ name, domain }, i) => {
+      const score = typeof facetScores[name] === 'number' ? facetScores[name] : 0.5;
+      return {
+        direction: fibonacciDirection(i, FACET_COUNT, 0),
+        length: 0.3 + score * STRAND_REACH,
+        color: DOMAINS[domain].color,
+        pulse: normPulse[domain],
+      };
+    });
 
-    // Activity volume → particle count.
     const entryCount = (entries || []).length;
     const ritualCount = (rituals?.last30 || []).length;
-    const particleCount = Math.min(220, 40 + entryCount * 2 + ritualCount * 4);
+    const particleCount = Math.min(240, 50 + entryCount * 2 + ritualCount * 4);
 
-    // Recent mood → hue. Average the last 7 entries' mood scores.
     const recent = (entries || []).slice(0, 7);
     const moodScore =
       recent.length > 0
         ? recent.reduce((a, e) => a + (e.mood ?? 2), 0) / recent.length
         : 2;
-    const moodHue = moodToOklch(moodScore, 2);
+    const moodHue = moodToOklch(moodScore);
 
-    // Level from XP (replicated formula — no import cycle).
     const level = Math.floor(Math.sqrt((engram?.xp || 0) / 100)) + 1;
     const driftSpeed = 0.6 + Math.min(1.4, level * 0.1);
 
-    return { anchors, enneagramType, particleCount, moodHue, driftSpeed, level };
+    return { strands, enneagramType, particleCount, moodHue, driftSpeed, level };
   }, [iris, engram, entries, rituals]);
 }
 
 /**
- * Fallback when WebGL is unavailable (happy-dom, very old browsers).
- * A static CSS-only rendition so the card still has a hero region.
+ * CSS-only fallback when WebGL is unavailable (happy-dom, ancient
+ * browsers, corporate GPU disable). A quiet concentric orb so the
+ * hero region still has presence.
  */
 function Fallback({ accentColor }) {
   return (
@@ -368,31 +416,32 @@ function Fallback({ accentColor }) {
       style={{
         width: '100%',
         aspectRatio: '16 / 10',
-        background: `radial-gradient(circle at 50% 55%, color-mix(in srgb, ${accentColor} 35%, transparent) 0%, transparent 65%)`,
+        position: 'relative',
+        borderRadius: 12,
+        overflow: 'hidden',
+        background: `radial-gradient(circle at 50% 55%, color-mix(in srgb, ${accentColor} 35%, transparent) 0%, color-mix(in srgb, ${accentColor} 8%, transparent) 45%, transparent 75%)`,
         display: 'grid',
         placeItems: 'center',
       }}
     >
       <div
-        className="mono"
+        aria-hidden="true"
         style={{
-          fontSize: 9,
-          letterSpacing: '0.3em',
-          textTransform: 'uppercase',
-          color: 'var(--ink-dim)',
+          width: 90,
+          height: 90,
+          borderRadius: '50%',
+          background: `radial-gradient(circle at 50% 50%, color-mix(in srgb, ${accentColor} 50%, transparent), transparent 70%)`,
+          border: `1px solid color-mix(in srgb, ${accentColor} 30%, transparent)`,
         }}
-      >
-        engram
-      </div>
+      />
     </div>
   );
 }
 
 /**
- * Public component. Renders inside a fixed-aspect wrapper at the top
- * of the Player Card. Returns null when IRIS hasn't been run yet —
- * upstream <PlayerCard /> already early-returns in that case, but
- * we double-check so this stays safe in isolation.
+ * Public surface. Mounted at the top of <PlayerCard />. Returns the
+ * fallback when IRIS isn't complete or WebGL is unavailable so the
+ * hero region never goes empty.
  */
 export default function EngramArtifact({ accentColor = '#7eb5ff' }) {
   const iris = useStore((s) => s.iris);
@@ -400,9 +449,8 @@ export default function EngramArtifact({ accentColor = '#7eb5ff' }) {
 
   if (!iris?.facetScores) return <Fallback accentColor={accentColor} />;
 
-  // Detect WebGL once at mount. Avoid a Canvas error boundary cascade
-  // in test env where WebGL isn't wired up.
-  const hasWebGL = typeof window !== 'undefined' &&
+  const hasWebGL =
+    typeof window !== 'undefined' &&
     !!(window.WebGLRenderingContext || window.WebGL2RenderingContext) &&
     (() => {
       try {
@@ -415,26 +463,32 @@ export default function EngramArtifact({ accentColor = '#7eb5ff' }) {
 
   if (!hasWebGL) return <Fallback accentColor={accentColor} />;
 
+  const reducedMotion =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   return (
     <div
       role="img"
-      aria-label="Your engram — a living 3D representation of your consciousness"
+      aria-label="Your engram — a living 3D orb that represents your consciousness"
       style={{
         width: '100%',
-        aspectRatio: '16 / 10',
+        aspectRatio: '1 / 1',
+        maxHeight: 320,
         position: 'relative',
         borderRadius: 12,
         overflow: 'hidden',
-        background: `radial-gradient(circle at 50% 55%, color-mix(in srgb, ${accentColor} 18%, transparent) 0%, transparent 70%)`,
+        background: `radial-gradient(circle at 50% 55%, color-mix(in srgb, ${accentColor} 22%, transparent) 0%, color-mix(in srgb, ${accentColor} 6%, transparent) 55%, transparent 80%)`,
       }}
     >
       <Canvas
-        camera={{ position: [0, 0.4, 3.2], fov: 45 }}
+        camera={{ position: [0, 0.2, 3.8], fov: 42 }}
         dpr={[1, 2]}
-        frameloop="always"
+        frameloop={reducedMotion ? 'demand' : 'always'}
       >
         <Suspense fallback={null}>
-          <Scene {...encoding} />
+          <Scene {...encoding} accent={accentColor} reducedMotion={reducedMotion} />
         </Suspense>
       </Canvas>
     </div>
