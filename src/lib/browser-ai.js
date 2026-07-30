@@ -128,24 +128,27 @@ export async function generateResponse(messages, opts = {}) {
 
   const chatMessages = Array.isArray(messages) ? messages : [{ role: 'user', content: messages }];
 
-  // Accumulate streamed chunks so we still return full text
+  // Accumulate streamed chunks via onData callback
   let full = '';
-  const onChunk = (text) => {
-    full += text;
-    if (onToken) onToken(text);
-  };
 
-  const response = await llm.createChatCompletion({
+  await llm.createChatCompletion({
     messages: chatMessages,
-    n_predict: maxTokens,
+    max_tokens: maxTokens,
     temperature,
     top_k: 40,
     top_p: 0.9,
-    onTextChunk: onChunk,
-    ...(signal ? { signal } : {}),
+    stream: true,
+    onData: (chunk) => {
+      const text = chunk.choices?.[0]?.delta?.content;
+      if (text) {
+        full += text;
+        if (onToken) onToken(text);
+      }
+    },
+    ...(signal ? { abortSignal: signal } : {}),
   });
 
-  return full || response?.choices?.[0]?.message?.content?.trim() || '';
+  return full || '';
 }
 
 /**
