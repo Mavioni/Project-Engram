@@ -10,6 +10,8 @@
 <!-- AUTO:log -->
 ## 2026-07-30
 
+- `2202097` perf: replace self-mirror idle polling with reactive setTimeout
+- `94c8d14` feat: AI error diagnostics — capped retries, error types, retry button
 - `e02a869` fix: correct wllama v3 API params — max_tokens + stream:true + onData
 - `85f198a` perf: streaming chat, reduced tokens, 45s timeout, abort support
 - `0b7e0e3` fix: browser AI pathConfig, WebGL context loss, default dark theme

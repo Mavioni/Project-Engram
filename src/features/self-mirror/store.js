@@ -32,7 +32,7 @@ const LOCKED_STATE = Object.freeze({
  * Zustand store for Self Mirror lock state. See module header for
  * the doctrine reason this is non-persisted.
  */
-export const useSelfMirrorStore = create((set, get) => ({
+export const useSelfMirrorStore = create((set) => ({
   ...LOCKED_STATE,
 
   /**

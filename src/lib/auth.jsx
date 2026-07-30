@@ -1,15 +1,20 @@
 // ─────────────────────────────────────────────────────────────
 // Auth context + useAuth hook.
 // ─────────────────────────────────────────────────────────────
-// Wraps the supabase.js helpers in a React context that:
-//   - hydrates the session from storage on mount
-//   - subscribes to auth state changes (sign in/out, refresh, MFA)
-//   - exposes user, session, AAL, factors, and isAuthed
-//   - is safe to mount even when Supabase isn't configured
-//     (everything just stays null and consumers degrade locally)
+// Wraps the supabase.js helpers in React contexts that:
+//   - hydrate the session from storage on mount
+//   - subscribe to auth state changes (sign in/out, refresh, MFA)
+//   - expose user, session, AAL, factors, and isAuthed
+//   - are safe to mount even when Supabase isn't configured
+//
+// Split into two contexts:
+//   AuthSessionContext — session-derived state (changes on auth events)
+//   AuthActionsContext — stable action refs (never changes)
+// Consumers that only call refresh/signOut don't re-render on session
+// changes — they grab actions from the actions context only.
 // ─────────────────────────────────────────────────────────────
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import {
   getSession,
   getAal,
@@ -18,29 +23,29 @@ import {
   onAuthChange,
 } from './supabase.js';
 
-const AuthContext = createContext({
+const AuthSessionContext = createContext({
   ready: false,
   configured: false,
   session: null,
   user: null,
-  aal: null,        // { currentLevel, nextLevel }
-  factors: null,    // { all, totp, phone }
+  aal: null,
+  factors: null,
   isAuthed: false,
   needsMfaChallenge: false,
   hasVerifiedTotp: false,
+});
+
+const AuthActionsContext = createContext({
   refresh: async () => {},
 });
 
 export function AuthProvider({ children }) {
-  // Lazy-init `ready` so the no-supabase case never needs a sync setState
-  // inside the effect below (satisfies react-hooks/set-state-in-effect
-  // introduced with eslint-plugin-react-hooks@7.1.1).
   const [ready, setReady] = useState(() => !hasSupabase());
   const [session, setSession] = useState(null);
   const [aal, setAal] = useState(null);
   const [factors, setFactors] = useState(null);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     if (!hasSupabase()) {
       setReady(true);
       return;
@@ -57,22 +62,15 @@ export function AuthProvider({ children }) {
     } finally {
       setReady(true);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!hasSupabase()) return undefined;
-    // Defer the initial refresh to a microtask so setState never
-    // runs synchronously during the effect's commit phase — keeps
-    // react-hooks/set-state-in-effect (eslint-plugin-react-hooks
-    // 7.1+) happy while preserving the fire-and-forget semantics.
     queueMicrotask(() => {
       void refresh();
     });
-    // Subscribe to auth changes and refresh the entire derived state.
     const unsub = onAuthChange(({ event, session: nextSession }) => {
       setSession(nextSession);
-      // After any auth event, re-derive AAL + factors so the UI
-      // immediately reflects MFA enrollment changes.
       Promise.all([
         getAal().catch(() => null),
         listFactors().catch(() => null),
@@ -80,20 +78,17 @@ export function AuthProvider({ children }) {
         setAal(a);
         setFactors(f);
       });
-      // Useful breakpoints during dev:
-      // SIGNED_IN | SIGNED_OUT | TOKEN_REFRESHED | USER_UPDATED | MFA_CHALLENGE_VERIFIED
       void event;
     });
     return unsub;
-  }, []);
+  }, [refresh]);
 
-  const value = useMemo(() => {
+  // Session-derived state — changes on auth events
+  const sessionValue = useMemo(() => {
     const user = session?.user || null;
     const isAuthed = Boolean(user);
     const verifiedTotp = (factors?.totp || []).filter((f) => f.status === 'verified');
     const hasVerifiedTotp = verifiedTotp.length > 0;
-    // Step-up needed when the next required level (aal2) hasn't
-    // been reached yet but the user has a verified TOTP factor.
     const needsMfaChallenge =
       isAuthed &&
       hasVerifiedTotp &&
@@ -111,13 +106,27 @@ export function AuthProvider({ children }) {
       isAuthed,
       needsMfaChallenge,
       hasVerifiedTotp,
-      refresh,
     };
   }, [ready, session, aal, factors]);
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  // Actions — stable, never changes
+  const actionsValue = useMemo(() => ({ refresh }), [refresh]);
+
+  return (
+    <AuthSessionContext.Provider value={sessionValue}>
+      <AuthActionsContext.Provider value={actionsValue}>
+        {children}
+      </AuthActionsContext.Provider>
+    </AuthSessionContext.Provider>
+  );
 }
 
+/** Full auth state — use when you need session/user/MFA info. */
 export function useAuth() {
-  return useContext(AuthContext);
+  return useContext(AuthSessionContext);
+}
+
+/** Stable auth actions — use when you only call refresh/signOut. */
+export function useAuthActions() {
+  return useContext(AuthActionsContext);
 }
