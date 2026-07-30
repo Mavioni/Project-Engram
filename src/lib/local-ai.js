@@ -34,8 +34,18 @@ const HEALTH_CACHE_MS = 30_000;
 /**
  * Quick health check: is the local server reachable?
  * Cached for 30 seconds to avoid hammering localhost on every render.
+ *
+ * Only attempts the check when running on localhost — a deployed site
+ * on github.io can't reach your machine and the HTTPS→HTTP fetch
+ * would be blocked by CORS + mixed content policy.
  */
 export async function isLocalAvailable() {
+  // Skip entirely on non-localhost origins — can't reach a local server
+  // from a deployed domain and the blocked request spams the console.
+  if (!window.location.hostname.match(/^(localhost|127\.0\.0\.1|\[::1])$/)) {
+    return false;
+  }
+
   const now = Date.now();
   if (healthCache !== null && now - healthCacheAt < HEALTH_CACHE_MS) {
     return healthCache;

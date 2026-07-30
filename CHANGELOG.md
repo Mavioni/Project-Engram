@@ -10,6 +10,7 @@
 <!-- AUTO:log -->
 ## 2026-07-30
 
+- `8e8648b` Remove Supabase — fully static GitHub Pages, local-first
 - `30841a7` Local AI backend — BitNet-compatible on-device inference
 - `1adef57` Psyche Engine — layered profiling surface (Part 3)
 - `573fd08` Remove battling, add World statistics (Part 2)
