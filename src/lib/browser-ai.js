@@ -103,37 +103,60 @@ export function getLoadState() {
   return { state: loadState, progress: loadProgress, error: loadError };
 }
 
-/**
- * Generate a chat response from the in-browser model.
- * Uses OpenAI-compatible chat completion API (wllama v3).
- */
-export async function generateResponse(messages, opts = {}) {
-  const llm = await loadModel();
-  const { maxTokens = 256, temperature = 0.7 } = opts;
-
-  // Build messages array in OpenAI format
-  const chatMessages = Array.isArray(messages) ? messages : [{ role: 'user', content: messages }];
-
-  const response = await llm.createChatCompletion({
-    messages: chatMessages,
-    max_tokens: maxTokens,
-    temperature,
-    top_k: 40,
-    top_p: 0.9,
-  });
-
-  return response.choices?.[0]?.message?.content?.trim() || '';
+/** Abort the current generation (e.g. on timeout). */
+export function abortGeneration() {
+  if (wllama) wllama.abort();
 }
 
 /**
- * Build an IRIS-aware system prompt.
+ * Generate a chat response from the in-browser model.
+ * Streams tokens via onToken(textChunk) so the UI can show
+ * live typing. Returns the full text when done.
+ *
+ * @param {Array} messages  OpenAI-format chat messages
+ * @param {object} opts     { maxTokens, temperature, onToken, signal }
+ * @returns {Promise<string>}
+ */
+export async function generateResponse(messages, opts = {}) {
+  const llm = await loadModel();
+  const {
+    maxTokens = 150,
+    temperature = 0.7,
+    onToken,
+    signal,
+  } = opts;
+
+  const chatMessages = Array.isArray(messages) ? messages : [{ role: 'user', content: messages }];
+
+  // Accumulate streamed chunks so we still return full text
+  let full = '';
+  const onChunk = (text) => {
+    full += text;
+    if (onToken) onToken(text);
+  };
+
+  const response = await llm.createChatCompletion({
+    messages: chatMessages,
+    n_predict: maxTokens,
+    temperature,
+    top_k: 40,
+    top_p: 0.9,
+    onTextChunk: onChunk,
+    ...(signal ? { signal } : {}),
+  });
+
+  return full || response?.choices?.[0]?.message?.content?.trim() || '';
+}
+
+/**
+ * Build an IRIS-aware system prompt — kept short for the 135M model.
  */
 export function buildIrisPrompt({ iris, entries }) {
   const type = iris?.enneagramType;
   const topScores = iris?.enneagramScores
     ? Object.entries(iris.enneagramScores)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
+        .slice(0, 2)
         .map(([t, s]) => `Type ${t} (${Math.round(s * 100)}%)`)
         .join(', ')
     : '';
@@ -142,12 +165,11 @@ export function buildIrisPrompt({ iris, entries }) {
   const recentNote = recentEntry?.notes?.map((n) => n.text).filter(Boolean).join('; ') || '';
 
   const parts = [
-    'You are IRIS, a warm and perceptive personality companion.',
-    'Respond in 2-4 sentences. Be specific and kind.',
+    'You are IRIS, a perceptive personality companion. Reply in 1-3 sentences. Be warm and direct.',
   ];
 
-  if (type) parts.push(`User Enneagram type: ${type}. Top resonances: ${topScores}.`);
-  if (recentNote) parts.push(`Recent journal: ${recentNote.slice(0, 200)}`);
+  if (type) parts.push(`User: Enneagram ${type}. Top: ${topScores}.`);
+  if (recentNote) parts.push(`Recent: ${recentNote.slice(0, 100)}`);
 
   return parts.join(' ');
 }

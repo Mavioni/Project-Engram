@@ -10,6 +10,7 @@
 <!-- AUTO:log -->
 ## 2026-07-30
 
+- `0b7e0e3` fix: browser AI pathConfig, WebGL context loss, default dark theme
 - `4f5ffc1` Fix wllama: correct constructor + bundled WASM CDN config
 - `8f34084` BitNet: replace ONNX with llama.cpp WASM + Q2_K GGUF model
 - `8c7dd22` Better fallback message + show actual model error in UI

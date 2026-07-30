@@ -15,7 +15,7 @@ import Emoji from '../../components/Emoji.jsx';
 import Empty from '../../components/Empty.jsx';
 import { useStore } from '../../lib/store.js';
 import { sendChatMessage } from '../../lib/claude.js';
-import { isModelReady, getLoadState, onLoadChange } from '../../lib/browser-ai.js';
+import { isModelReady, getLoadState, onLoadChange, abortGeneration } from '../../lib/browser-ai.js';
 
 export default function Chat() {
   const navigate = useNavigate();
@@ -27,8 +27,10 @@ export default function Chat() {
   const [activeId, setActiveId] = useState(threads[0]?.id || null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [streaming, setStreaming] = useState('');  // live token accumulation
   const [modelState, setModelState] = useState(getLoadState());
   const endRef = useRef(null);
+  const abortRef = useRef(null);  // AbortController for cancelling inference
 
   const active = threads.find((t) => t.id === activeId);
 
@@ -47,7 +49,7 @@ export default function Chat() {
   };
 
   const send = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || sending) return;
     let threadId = activeId;
     if (!threadId) {
       threadId = startChatThread(new Date().toLocaleDateString());
@@ -57,16 +59,25 @@ export default function Chat() {
     setInput('');
     appendChatMessage(threadId, { role: 'user', content: text });
     setSending(true);
+    setStreaming('');
+
+    // AbortController with 45s timeout — prevents hanging
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    const timeout = setTimeout(() => { ac.abort(); abortGeneration(); }, 45000);
+
     try {
-      const history = (threads.find((t) => t.id === threadId)?.messages || []).concat({
-        role: 'user',
-        content: text,
-      });
+      const history = threads
+        .find((t) => t.id === threadId)
+        ?.messages.concat({ role: 'user', content: text }) || [];
+
       const res = await sendChatMessage({
-        threadId,
         history,
         message: text,
         irisContext: iris,
+        onToken: (chunk) => setStreaming((prev) => prev + chunk),
+        signal: ac.signal,
       });
       appendChatMessage(threadId, {
         role: 'assistant',
@@ -74,13 +85,26 @@ export default function Chat() {
         model: res.model,
       });
     } catch (e) {
-      appendChatMessage(threadId, {
-        role: 'assistant',
-        content: `Something went wrong: ${e.message || e}. Try again.`,
-        error: true,
-      });
+      if (e.name === 'AbortError') {
+        appendChatMessage(threadId, {
+          role: 'assistant',
+          content: streaming
+            ? streaming + '\\n\\n[response timed out — showing partial output]'
+            : 'Response timed out. The model may be busy. Try a shorter message.',
+          error: true,
+        });
+      } else {
+        appendChatMessage(threadId, {
+          role: 'assistant',
+          content: `Something went wrong: ${e.message || e}. Try again.`,
+          error: true,
+        });
+      }
     } finally {
+      clearTimeout(timeout);
       setSending(false);
+      setStreaming('');
+      abortRef.current = null;
     }
   };
 
@@ -141,9 +165,11 @@ export default function Chat() {
             <MessageBubble key={m.id} role={m.role} content={m.content} error={m.error} />
           ))}
           {sending && (
-            <div className="mono" style={{ fontSize: 10, letterSpacing: '0.2em', color: 'var(--ink-dim)', textTransform: 'uppercase', padding: '8px 14px' }}>
-              IRIS is writing…
-            </div>
+            <MessageBubble
+              role="assistant"
+              content={streaming || '…'}
+              streaming={!!streaming}
+            />
           )}
           <div ref={endRef} />
         </div>
@@ -184,7 +210,7 @@ export default function Chat() {
   );
 }
 
-function MessageBubble({ role, content, error }) {
+function MessageBubble({ role, content, error, streaming }) {
   const isUser = role === 'user';
   return (
     <div style={{
@@ -196,6 +222,12 @@ function MessageBubble({ role, content, error }) {
       fontFamily: 'var(--serif)', whiteSpace: 'pre-wrap',
     }}>
       {content}
+      {streaming && (
+        <span style={{
+          display: 'inline-block', width: 2, height: '1em', background: 'var(--ink-soft)',
+          marginLeft: 1, verticalAlign: 'text-bottom', animation: 'blink 1s step-end infinite',
+        }} />
+      )}
     </div>
   );
 }

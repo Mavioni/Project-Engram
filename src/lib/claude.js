@@ -25,7 +25,7 @@ export async function requestInsight({ kind, windowDays = 7, context = {} }) {
     const content = await generateResponse([
       { role: 'system', content: 'You are IRIS, a personality insight engine. Write a concise, warm reflection.' },
       { role: 'user', content: `Write a ${kind} reflection for the last ${windowDays} days. Context: ${JSON.stringify(context).slice(0, 500)}` },
-    ], { maxTokens: 200, temperature: 0.7 });
+    ], { maxTokens: 120, temperature: 0.7 });
     if (content) {
       return normalizeAiResponse({ content }, { model: MODELS.local, provider: AI_PROVIDERS.LOCAL });
     }
@@ -40,7 +40,7 @@ export async function requestInsight({ kind, windowDays = 7, context = {} }) {
   });
 }
 
-export async function sendChatMessage({ history, message, irisContext }) {
+export async function sendChatMessage({ history, message, irisContext, onToken, signal }) {
   try {
     const systemPrompt = buildIrisPrompt({
       iris: irisContext,
@@ -56,11 +56,17 @@ export async function sendChatMessage({ history, message, irisContext }) {
       messages.push({ role: 'user', content: message });
     }
 
-    const content = await generateResponse(messages, { maxTokens: 256, temperature: 0.7 });
+    const content = await generateResponse(messages, {
+      maxTokens: 150,
+      temperature: 0.7,
+      onToken,
+      signal,
+    });
     if (content) {
       return normalizeAiResponse({ content }, { model: MODELS.local, provider: AI_PROVIDERS.LOCAL });
     }
   } catch (e) {
+    if (e.name === 'AbortError') throw e;
     console.warn('Browser AI chat failed:', e.message);
   }
 

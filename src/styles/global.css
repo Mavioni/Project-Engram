@@ -236,6 +236,11 @@ a {
   50%      { filter: drop-shadow(0 0 14px rgba(255, 209, 102, 0.35)); }
 }
 
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
 .engram-fade-in {
   animation: engramFadeIn 360ms cubic-bezier(0.2, 1, 0.3, 1);
 }
