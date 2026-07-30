@@ -8,6 +8,10 @@
 > voice as the commits themselves.
 
 <!-- AUTO:log -->
+## 2026-07-30
+
+- `e72be0d` Fix typing bias that scored ~43% of users as Loyalist (#38)
+
 ## 2026-04-21
 
 - `5a320c2` feat(engram): 100x artifact upgrade — animated, interactive, downloadable
@@ -52,6 +56,15 @@
 - `c12550e` Model app around IRIS v4: front-door landing + Coliseum + handoff
 - `dbcceec` Add files via upload
 - `52f3899` Refresh UI with sacred geometry illustration layer
-- `e8f8764` Merge PR #2: GitHub Pages deploy + auth/2FA + spinner fix
+- `3815bc9` Migrate from Netlify Drop to GitHub Pages
+- `856ca99` Add auth + TOTP 2FA + auth-gated Stripe checkout
+- `8742523` Fix stuck loading spinner on Netlify Drop deploys
+
+## 2026-04-13
+
+- `53e0f4c` Ship _redirects + _headers in dist for Netlify Drop
+- `4aade1c` Build Engram: PWA shell, emoji journal, IRIS, charts, AI, subscriptions (#1)
+- `429c67a` Main App Source Code
+- `4edf397` Initial commit
 
 <!-- /AUTO:log -->

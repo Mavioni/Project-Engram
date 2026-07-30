@@ -51,15 +51,13 @@ const initialSubscription = () => ({
   aiCreditsResetAt: null,
 });
 
-// Engram replica: the user's evolving stats — XP, level, and
-// the archetypes they've defeated in the arena.
+// Engram replica: the user's evolving stats — XP, level, growth.
+// XP is earned through reflection: journal entries, rituals, IRIS
+// re-runs, and check-ins. Growth stays; combat is gone.
 const initialEngram = () => ({
   xp: 0,
   level: 1,
-  defeated: [], // array of archetype type numbers (1..9) bested in the arena
-  battleHistory: [], // last ~30 battles: { archetype, won, rounds: [{domain, user, opp, winner}], at }
   pendingLevelUp: null, // set to the new level number when awardXp crosses a boundary; cleared by acknowledgeLevelUp
-  dailyChallenge: null, // { day, archetype, completed } — one per local day, surfaced on Dashboard
 });
 
 // Rituals: the user's practice history + streak.
@@ -245,7 +243,7 @@ export const useStore = create(
           },
         })),
 
-      // ── Engram (replica / arena) ──
+      // ── Engram (replica / growth) ──
       // Every XP award checks whether the level boundary was
       // crossed; if so, `pendingLevelUp` is set and the Dashboard
       // surfaces a celebration toast on the user's next render.
@@ -263,39 +261,6 @@ export const useStore = create(
               level: nextLevel,
               pendingLevelUp:
                 nextLevel > prevLevel ? nextLevel : s.engram.pendingLevelUp,
-            },
-          };
-        }),
-      recordBattle: (result) =>
-        set((s) => {
-          const defeated = result.won
-            ? Array.from(new Set([...(s.engram.defeated || []), result.archetype]))
-            : s.engram.defeated || [];
-          const history = [
-            { ...result, at: new Date().toISOString() },
-            ...(s.engram.battleHistory || []),
-          ].slice(0, 30);
-          const xpDelta = result.won ? 100 : 25;
-          const prevLevel = s.engram.level || levelFromXp(s.engram.xp);
-          const nextXp = (s.engram.xp || 0) + xpDelta;
-          const nextLevel = levelFromXp(nextXp);
-          // A won battle against the daily challenge target flips
-          // the challenge's `completed` flag.
-          const dc = s.engram.dailyChallenge;
-          const nextDaily =
-            dc && !dc.completed && result.won && dc.archetype === result.archetype
-              ? { ...dc, completed: true }
-              : dc;
-          return {
-            engram: {
-              ...s.engram,
-              xp: nextXp,
-              level: nextLevel,
-              defeated,
-              battleHistory: history,
-              pendingLevelUp:
-                nextLevel > prevLevel ? nextLevel : s.engram.pendingLevelUp,
-              dailyChallenge: nextDaily,
             },
           };
         }),
@@ -343,32 +308,6 @@ export const useStore = create(
       // ── Settings ──
       setSetting: (patch) =>
         set((s) => ({ settings: { ...s.settings, ...patch } })),
-      // Called by the Dashboard on mount — if today doesn't yet
-      // have a challenge, pick one. The archetype is chosen from
-      // the set the user hasn't defeated yet (or cycles through
-      // all 9 if they've already sealed everyone).
-      ensureDailyChallenge: () =>
-        set((s) => {
-          const day = dayKey();
-          if (s.engram.dailyChallenge?.day === day) return {};
-          const userType = s.iris?.enneagramType;
-          const allTypes = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((t) => t !== userType);
-          const undefeated = allTypes.filter(
-            (t) => !(s.engram.defeated || []).includes(t),
-          );
-          const pool = undefeated.length > 0 ? undefeated : allTypes;
-          // Deterministic-per-day: hash the day key so the user
-          // sees the same challenge all day, even across refreshes.
-          let h = 0;
-          for (let i = 0; i < day.length; i++) h = ((h << 5) - h + day.charCodeAt(i)) | 0;
-          const archetype = pool[Math.abs(h) % pool.length];
-          return {
-            engram: {
-              ...s.engram,
-              dailyChallenge: { day, archetype, completed: false },
-            },
-          };
-        }),
 
       // ── Reset (with confirm in UI) ──
       hardReset: () =>

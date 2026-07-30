@@ -3,8 +3,8 @@
 // `engram.pendingLevelUp` flips to a number.
 // ─────────────────────────────────────────────────────────────
 // Dismissed by tap anywhere. Auto-dismisses after 6 seconds.
-// Fires one-time per level boundary — awardXp + recordBattle
-// both set the flag when the level advances, and this component
+// Fires one-time per level boundary — awardXp sets the flag
+// when the level advances, and this component
 // clears it via `acknowledgeLevelUp`.
 //
 // Lives above the route content (inside App shell), so it works

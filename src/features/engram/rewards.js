@@ -11,8 +11,6 @@ export const XP = {
   streakDay: 5,
   irisComplete: 50,
   note: 25,
-  battleWin: 100,
-  battleLoss: 25,
 };
 
 /** Level from total XP. Each level costs `level * 100` XP. */

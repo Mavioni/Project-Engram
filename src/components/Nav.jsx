@@ -5,7 +5,7 @@
 //
 //   Dashboard  —  /         your daily surface
 //   Chat       —  /chat     talk to your IRIS
-//   Engram     —  /engram   your replica + arena
+//   Engram     —  /engram   your replica + growth
 //
 // Settings, pricing, account, IRIS assessment, journal, calendar,
 // and insights are all reachable via in-page links — they don't

@@ -53,12 +53,12 @@ describe('rewards', () => {
   });
 
   describe('XP amounts', () => {
-    it('battle wins award more than losses', () => {
-      expect(XP.battleWin).toBeGreaterThan(XP.battleLoss);
-    });
-
     it('IRIS completion is a substantial reward', () => {
       expect(XP.irisComplete).toBeGreaterThanOrEqual(50);
+    });
+
+    it('check-in awards a baseline amount', () => {
+      expect(XP.checkIn).toBe(10);
     });
   });
 });
