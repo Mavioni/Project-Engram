@@ -10,6 +10,7 @@
 <!-- AUTO:log -->
 ## 2026-07-30
 
+- `e02a869` fix: correct wllama v3 API params — max_tokens + stream:true + onData
 - `85f198a` perf: streaming chat, reduced tokens, 45s timeout, abort support
 - `0b7e0e3` fix: browser AI pathConfig, WebGL context loss, default dark theme
 - `4f5ffc1` Fix wllama: correct constructor + bundled WASM CDN config

@@ -29,15 +29,23 @@ export async function requestInsight({ kind, windowDays = 7, context = {} }) {
     if (content) {
       return normalizeAiResponse({ content }, { model: MODELS.local, provider: AI_PROVIDERS.LOCAL });
     }
+    // Model returned empty — not an error, but no content
+    return normalizeAiResponse(null, {
+      content: fallbackInsight(kind),
+      model: MODELS.local,
+      provider: AI_PROVIDERS.LOCAL,
+      error: 'Model returned empty response',
+    });
   } catch (e) {
     console.warn('Browser AI insight failed:', e.message);
+    return normalizeAiResponse(null, {
+      content: fallbackInsight(kind),
+      model: AI_PROVIDERS.FALLBACK,
+      provider: AI_PROVIDERS.FALLBACK,
+      error: e.message,
+      errorType: e.errorType || 'unknown',
+    });
   }
-
-  return normalizeAiResponse(null, {
-    content: fallbackInsight(kind),
-    model: AI_PROVIDERS.FALLBACK,
-    provider: AI_PROVIDERS.FALLBACK,
-  });
 }
 
 export async function sendChatMessage({ history, message, irisContext, onToken, signal }) {
@@ -51,7 +59,6 @@ export async function sendChatMessage({ history, message, irisContext, onToken, 
       { role: 'system', content: systemPrompt },
       ...(history || []),
     ];
-    // Ensure the last user message is included if not in history
     if (!messages.some((m) => m.role === 'user' && m.content === message)) {
       messages.push({ role: 'user', content: message });
     }
@@ -65,14 +72,23 @@ export async function sendChatMessage({ history, message, irisContext, onToken, 
     if (content) {
       return normalizeAiResponse({ content }, { model: MODELS.local, provider: AI_PROVIDERS.LOCAL });
     }
+    // Empty response — show fallback but flag the error
+    return normalizeAiResponse(null, {
+      content: fallbackChatMessage(),
+      model: MODELS.local,
+      provider: AI_PROVIDERS.LOCAL,
+      error: 'Model returned empty response — may need to reload',
+      errorType: 'model',
+    });
   } catch (e) {
     if (e.name === 'AbortError') throw e;
     console.warn('Browser AI chat failed:', e.message);
+    return normalizeAiResponse(null, {
+      content: fallbackChatMessage(),
+      model: AI_PROVIDERS.FALLBACK,
+      provider: AI_PROVIDERS.FALLBACK,
+      error: e.message,
+      errorType: e.errorType || 'unknown',
+    });
   }
-
-  return normalizeAiResponse(null, {
-    content: fallbackChatMessage(),
-    model: AI_PROVIDERS.FALLBACK,
-    provider: AI_PROVIDERS.FALLBACK,
-  });
 }

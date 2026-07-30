@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────────────────────────
-// Chat — \"Chat with your IRIS\" via in-browser AI.
+// Chat — "Chat with your IRIS" via in-browser AI.
 // ─────────────────────────────────────────────────────────────
-// The model loads directly in your browser via transformers.js.
-// No server. No API key. First load downloads ~80 MB of model
+// The model loads directly in your browser via llama.cpp WASM.
+// No server. No API key. First load downloads ~50 MB of model
 // weights from HuggingFace CDN; subsequent loads use cache.
 // ─────────────────────────────────────────────────────────────
 
@@ -15,7 +15,16 @@ import Emoji from '../../components/Emoji.jsx';
 import Empty from '../../components/Empty.jsx';
 import { useStore } from '../../lib/store.js';
 import { sendChatMessage } from '../../lib/claude.js';
-import { isModelReady, getLoadState, onLoadChange, abortGeneration } from '../../lib/browser-ai.js';
+import { isModelReady, getLoadState, onLoadChange, abortGeneration, retryLoad } from '../../lib/browser-ai.js';
+
+/** Human-readable label for error types. */
+const ERROR_LABELS = {
+  network: 'Network error — check your connection',
+  wasm: 'WebAssembly not supported — try a different browser',
+  model: 'Model failed to load — file may be corrupted',
+  timeout: 'Model load timed out — try again',
+  unknown: 'Unknown error loading model',
+};
 
 export default function Chat() {
   const navigate = useNavigate();
@@ -27,10 +36,10 @@ export default function Chat() {
   const [activeId, setActiveId] = useState(threads[0]?.id || null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [streaming, setStreaming] = useState('');  // live token accumulation
+  const [streaming, setStreaming] = useState('');
   const [modelState, setModelState] = useState(getLoadState());
   const endRef = useRef(null);
-  const abortRef = useRef(null);  // AbortController for cancelling inference
+  const abortRef = useRef(null);
 
   const active = threads.find((t) => t.id === activeId);
 
@@ -38,7 +47,6 @@ export default function Chat() {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [active?.messages.length]);
 
-  // Subscribe to model load progress — use lazy init to avoid sync setState
   useEffect(() => {
     return onLoadChange(setModelState);
   }, []);
@@ -61,7 +69,6 @@ export default function Chat() {
     setSending(true);
     setStreaming('');
 
-    // AbortController with 45s timeout — prevents hanging
     abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;
@@ -83,13 +90,15 @@ export default function Chat() {
         role: 'assistant',
         content: res.content,
         model: res.model,
+        aiError: res.error || null,
+        aiErrorType: res.errorType || null,
       });
     } catch (e) {
       if (e.name === 'AbortError') {
         appendChatMessage(threadId, {
           role: 'assistant',
           content: streaming
-            ? streaming + '\\n\\n[response timed out — showing partial output]'
+            ? streaming + '\n\n[response timed out — showing partial output]'
             : 'Response timed out. The model may be busy. Try a shorter message.',
           error: true,
         });
@@ -122,7 +131,8 @@ export default function Chat() {
   }
 
   const modelReady = isModelReady();
-  const modelLoading = modelState.state === 'loading';
+  const modelLoading = modelState.state === 'loading' || modelState.state === 'downloading';
+  const modelError = modelState.state === 'error';
 
   return (
     <Screen
@@ -131,11 +141,13 @@ export default function Chat() {
       subtitle="In-browser AI — no server, no API key"
       action={<Button variant="subtle" size="sm" onClick={startNew}>+ New</Button>}
     >
-      {/* Model status banner */}
+      {/* ── Model loading ── */}
       {modelLoading && (
         <Card style={{ marginBottom: 12, borderColor: 'rgba(126,181,255,0.35)' }}>
           <div style={{ fontSize: 12, color: '#7eb5ff', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
-            Loading model… {modelState.progress > 0 ? `${modelState.progress}%` : 'connecting'}
+            {modelState.state === 'downloading'
+              ? `Downloading model… ${modelState.progress > 0 ? `${modelState.progress}%` : 'connecting'}`
+              : 'Loading model…'}
           </div>
           {modelState.progress > 0 && (
             <div style={{ height: 3, background: 'var(--border)', borderRadius: 2, overflow: 'hidden', marginTop: 6 }}>
@@ -144,25 +156,49 @@ export default function Chat() {
           )}
         </Card>
       )}
-      {modelState.state === 'error' && (
-        <Card style={{ marginBottom: 12, borderColor: 'rgba(255,107,107,0.35)' }}>
-          <div style={{ fontSize: 12, color: '#ff6b6b', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
-            Model failed to load. {modelState.error ? modelState.error.slice(0, 200) : 'Your browser may not support WebGPU/WASM, or you&apos;re offline on first visit.'}
-          </div>
-        </Card>
-      )}
-      {modelReady && (
-        <Card style={{ marginBottom: 12, borderColor: 'rgba(105,219,124,0.35)' }}>
-          <div style={{ fontSize: 12, color: '#69db7c', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
-            Model ready — SmolLM2-135M running in your browser. Responses generated on-device.
+
+      {/* ── Model error — diagnostic badge with retry ── */}
+      {modelError && (
+        <Card style={{ marginBottom: 12, borderColor: 'rgba(255,107,107,0.4)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, color: '#ff6b6b', fontFamily: 'var(--mono)', letterSpacing: '0.04em', marginBottom: 4 }}>
+                {ERROR_LABELS[modelState.errorType] || ERROR_LABELS.unknown}
+              </div>
+              {modelState.error && (
+                <div style={{ fontSize: 11, color: 'var(--ink-dim)', fontFamily: 'var(--mono)', wordBreak: 'break-word' }}>
+                  {modelState.error.slice(0, 200)}
+                </div>
+              )}
+            </div>
+            <Button variant="subtle" size="sm" tone="var(--accent)" onClick={retryLoad}>
+              Retry
+            </Button>
           </div>
         </Card>
       )}
 
+      {/* ── Model ready ── */}
+      {modelReady && (
+        <Card style={{ marginBottom: 12, borderColor: 'rgba(105,219,124,0.35)' }}>
+          <div style={{ fontSize: 12, color: '#69db7c', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
+            Model ready — SmolLM2-135M running in your browser
+          </div>
+        </Card>
+      )}
+
+      {/* ── Messages ── */}
       {active && active.messages.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
           {active.messages.map((m) => (
-            <MessageBubble key={m.id} role={m.role} content={m.content} error={m.error} />
+            <MessageBubble
+              key={m.id}
+              role={m.role}
+              content={m.content}
+              error={m.error}
+              aiError={m.aiError}
+              aiErrorType={m.aiErrorType}
+            />
           ))}
           {sending && (
             <MessageBubble
@@ -192,7 +228,7 @@ export default function Chat() {
         </div>
       )}
 
-      {/* Composer */}
+      {/* ── Composer ── */}
       <div style={{ position: 'sticky', bottom: 0, display: 'flex', gap: 8, alignItems: 'flex-end', padding: '12px 0', background: 'linear-gradient(180deg, transparent, var(--bg) 40%)' }}>
         <textarea
           value={input}
@@ -210,7 +246,7 @@ export default function Chat() {
   );
 }
 
-function MessageBubble({ role, content, error, streaming }) {
+function MessageBubble({ role, content, error, streaming, aiError, aiErrorType }) {
   const isUser = role === 'user';
   return (
     <div style={{
@@ -222,6 +258,15 @@ function MessageBubble({ role, content, error, streaming }) {
       fontFamily: 'var(--serif)', whiteSpace: 'pre-wrap',
     }}>
       {content}
+      {aiError && (
+        <div style={{
+          marginTop: 8, padding: '6px 10px', borderRadius: 6,
+          background: 'rgba(255,107,107,0.08)', border: '1px solid rgba(255,107,107,0.2)',
+          fontSize: 10, fontFamily: 'var(--mono)', color: '#ff6b6b', letterSpacing: '0.04em',
+        }}>
+          {ERROR_LABELS[aiErrorType] || aiError}
+        </div>
+      )}
       {streaming && (
         <span style={{
           display: 'inline-block', width: 2, height: '1em', background: 'var(--ink-soft)',
