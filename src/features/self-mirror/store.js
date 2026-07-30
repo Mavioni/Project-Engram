@@ -21,9 +21,6 @@ import { zeroKey } from './storage/crypto.js';
 /** 30 minutes in ms. Matches ADR §7. */
 export const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 
-/** Default poll cadence for the idle watcher (ADR §12.5 — 1-min). */
-export const IDLE_POLL_MS = 60 * 1000;
-
 /** Seed state for both initial construction and setLocked(). */
 const LOCKED_STATE = Object.freeze({
   unlocked: false,
@@ -73,13 +70,6 @@ export const useSelfMirrorStore = create((set, get) => ({
   /** Refresh lastActivityAt on operator interaction. No-op if locked. */
   bumpActivity: () =>
     set((s) => (s.unlocked ? { lastActivityAt: Date.now() } : {})),
-
-  /**
-   * Readback helper — tests and the idle watcher consume this
-   * rather than reaching into store internals.
-   * @returns {number | null}
-   */
-  getLastActivity: () => get().lastActivityAt,
 }));
 
 // ── Selectors ───────────────────────────────────────────────
@@ -94,42 +84,53 @@ export const selectLastActivity = (s) => s.lastActivityAt;
  * Returns a cleanup function the caller must invoke on unmount /
  * explicit lock / tab close.
  *
- * The watcher polls at `IDLE_POLL_MS` (1 min) and reads
- * `lastActivityAt` from the store on each tick. That lets any
- * component call `bumpActivity()` to transparently reset the
- * effective idle clock without reaching into the timer.
+ * Uses a debounced setTimeout (re-armed on every bumpActivity)
+ * instead of polling. Subscribes to the store so the timer resets
+ * whenever lastActivityAt changes while unlocked.
  *
- * Phase 1.1 will replace the poll with a debounced setTimeout
- * re-armed on each bumpActivity call (ADR §12.5).
- *
- * @param {{ onIdle: () => void, intervalMs?: number, timeoutMs?: number }} options
+ * @param {{ onIdle: () => void, timeoutMs?: number }} options
  * @returns {() => void} cleanup
  */
 export function startIdleWatch({
   onIdle,
-  intervalMs = IDLE_POLL_MS,
   timeoutMs = IDLE_TIMEOUT_MS,
 }) {
   if (typeof onIdle !== 'function') {
     throw new TypeError('startIdleWatch: onIdle must be a function');
   }
+
+  let timer = null;
   let fired = false;
-  let handle = setInterval(() => {
+
+  const schedule = () => {
     if (fired) return;
-    const last = useSelfMirrorStore.getState().lastActivityAt;
-    if (last == null) return;
-    if (Date.now() - last >= timeoutMs) {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
       fired = true;
-      clearInterval(handle);
-      handle = null;
+      timer = null;
       onIdle();
+    }, timeoutMs);
+  };
+
+  // Reactively reschedule on every activity bump while unlocked
+  const unsub = useSelfMirrorStore.subscribe((state, prev) => {
+    if (state.unlocked && state.lastActivityAt !== prev.lastActivityAt) {
+      schedule();
     }
-  }, intervalMs);
+    // If locked externally (e.g. explicit lock button), clean up
+    if (!state.unlocked && prev.unlocked) {
+      fired = true;
+      if (timer) { clearTimeout(timer); timer = null; }
+    }
+  });
+
+  // Initial schedule if already unlocked at call time
+  if (useSelfMirrorStore.getState().unlocked) {
+    schedule();
+  }
 
   return () => {
-    if (handle != null) {
-      clearInterval(handle);
-      handle = null;
-    }
+    if (timer) clearTimeout(timer);
+    unsub();
   };
 }
