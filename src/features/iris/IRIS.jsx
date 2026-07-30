@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { classifyTernary } from "../../lib/ternary.js";
+import { computeReading } from "../../lib/psychometrics.js";
 
 // ═══════════════════════════════════════════════════════════════
 // IRIS v4.0 — Integrative Resonance Identity Simulation
@@ -43,6 +44,11 @@ const FACETS = [
   { id: "shame", short: "Shame", domain: 5, low: "Low internalized inadequacy. Fail publicly without identity crisis. Resilient, but make sure you\u2019re metabolizing lessons.", mid: "Shame visits but doesn\u2019t move in. Process without spiraling into self-destruction.", high: "Shame runs deep. Feel the gap between who you are and should be as constant pain. Drives improvement but can make you perform rather than be." },
   { id: "desire", short: "Desire", domain: 5, low: "Wants muted or hidden, even from yourself. May look like contentment but might be suppression. Unfelt desires drive from the basement.", mid: "Know what you want, name most of it. Don\u2019t let desire run your life. Peace with wanting as a feature of being alive.", high: "Transparent about what you want. Desire is visible force. Liberating honesty, but unmoderated can become consumption \u2014 always reaching, never savoring." },
 ];
+
+// Canonical facet order. Load-bearing: the 3D scene maps FACETS[i]
+// to the i-th Fibonacci-sphere point, and the vector code joins in
+// this order. psychometrics.js takes it as the vector basis.
+const FACET_IDS = FACETS.map(f => f.id);
 
 // ═══ COLISEUM DATA — Statistical + Historical ═══
 // Population data from Enneagram Institute / RHETI studies
@@ -312,31 +318,41 @@ export default function IRISApp({ onComplete, onExit, initialPhase = "landing" }
   const [phase, setPhase] = useState(initialPhase); // landing|coliseum|assess|results
   const [qIdx, setQIdx] = useState(0);
   const [answers, setAnswers] = useState([]);
-  const [facetScores, setFacetScores] = useState(() => { const s = {}; FACETS.forEach(f => { s[f.id] = 0; }); return s; });
+  const [facetScores, setFacetScores] = useState(() => { const s = {}; FACETS.forEach(f => { s[f.id] = 0; }); return s; }); // 0 here is fine — landing uses a synthetic demo vector, never this
   const [enneagramType, setEnneagramType] = useState(null);
   const [enneagramScores, setEnneagramScores] = useState({});
   const [selectedChoice, setSelectedChoice] = useState(null);
   const [fadeIn, setFadeIn] = useState(true);
   const [timestamp, setTimestamp] = useState("");
   const [showDetails, setShowDetails] = useState(false);
+  // Full psychometric reading: matches, coverage, confidence, clarity.
+  // Null until the assessment completes.
+  const [reading, setReading] = useState(null);
 
   const transition = fn => { setFadeIn(false); setTimeout(() => { fn(); setFadeIn(true); }, 350); };
 
   const calculateResults = allAnswers => {
-    const totals = {}, counts = {};
-    FACETS.forEach(f => { totals[f.id] = 0; counts[f.id] = 0; });
-    allAnswers.forEach(a => { Object.entries(a.scores).forEach(([k, v]) => { if (totals[k] !== undefined) { totals[k] += v; counts[k]++; } }); });
-    const avg = {}; FACETS.forEach(f => { avg[f.id] = counts[f.id] ? totals[f.id] / counts[f.id] : 0; });
-    setFacetScores(avg);
-    const ts = {};
-    Object.entries(ENNEAGRAM_PROFILES).forEach(([t, p]) => { let d = 0, c = 0; FACETS.forEach(f => { d += Math.pow((p.facets[f.id]||0) - (avg[f.id]||0), 2); c++; }); ts[t] = 1 - Math.sqrt(d / c); });
-    setEnneagramScores(ts);
-    const type = parseInt(Object.entries(ts).sort((a, b) => b[1] - a[1])[0][0]);
-    setEnneagramType(type);
+    // Scoring lives in src/lib/psychometrics.js. The previous inline
+    // maths (untouched facet → 0, then raw Euclidean distance to each
+    // prototype) typed ~43% of users as Loyalist because Euclidean
+    // distance rewards whichever prototype sits nearest the centre of
+    // facet space — and Type 6's signature is the flattest of the nine.
+    // See docs/decisions/ ADR-0002.
+    const reading = computeReading({
+      answers: allAnswers,
+      prototypes: ENNEAGRAM_PROFILES,
+      facetIds: FACET_IDS,
+    });
+    setFacetScores(reading.facetScores);
+    setEnneagramScores(reading.enneagramScores);
+    setEnneagramType(reading.enneagramType);
+    setReading(reading);
     setTimestamp(new Date().toISOString());
     // Hand results off to the outer app (Zustand + Supabase sync).
+    // The first three fields keep their original shape; the rest is
+    // additive so existing consumers are unaffected.
     if (typeof onComplete === "function") {
-      try { onComplete({ facetScores: avg, enneagramType: type, enneagramScores: ts }); }
+      try { onComplete(reading); }
       catch (e) { console.error("IRIS onComplete handler failed", e); }
     }
   };
@@ -354,7 +370,7 @@ export default function IRISApp({ onComplete, onExit, initialPhase = "landing" }
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   };
 
-  const restart = () => transition(() => { setPhase("landing"); setQIdx(0); setAnswers([]); setShowDetails(false); const s = {}; FACETS.forEach(f => { s[f.id] = 0; }); setFacetScores(s); setEnneagramType(null); setEnneagramScores({}); });
+  const restart = () => transition(() => { setPhase("landing"); setQIdx(0); setAnswers([]); setShowDetails(false); const s = {}; FACETS.forEach(f => { s[f.id] = 0; }); setFacetScores(s); setEnneagramType(null); setEnneagramScores({}); setReading(null); });
 
   // Google Fonts are already loaded once at app boot via index.html's
   // preload+onload pattern; re-injecting a <link rel="stylesheet"> on
@@ -433,6 +449,28 @@ export default function IRISApp({ onComplete, onExit, initialPhase = "landing" }
             <div style={{ fontSize: 38, fontWeight: 300, color: profile.color, lineHeight: 1 }}>{enneagramType}</div>
             <h2 style={{ fontSize: 24, fontWeight: 300, color: "#fff", margin: "2px 0", letterSpacing: 3 }}>{col.title}</h2>
             <div style={{ fontSize: 10, color: "#555", ...m }}>Wing {wt} \u00b7 {Math.round((sorted[0]?.[1]||0)*100)}% \u00b7 {col.tagline}</div>
+          </div>}
+
+          {/* Top-3 matches + reading confidence. A type is a best fit among
+              nine, not a verdict \u2014 showing the runners-up keeps a 71%/68%
+              near-tie honest instead of flattening it into one answer. */}
+          {reading && <div style={{ textAlign: "center", marginBottom: 8 }}>
+            <div style={{ display: "flex", gap: 6, justifyContent: "center", flexWrap: "wrap" }}>
+              {reading.topMatches.map((match, i) => {
+                const mp = ENNEAGRAM_PROFILES[match.type];
+                const mc = COLISEUM[match.type];
+                const primary = i === 0;
+                return <div key={match.type} style={{ padding: "4px 10px", borderRadius: 3, border: `1px solid ${primary ? mp.color + "40" : "#ffffff10"}`, background: primary ? mp.color + "10" : "transparent" }}>
+                  <span style={{ fontSize: 10, color: primary ? mp.color : "#777", ...m }}>{mc.glyph} {mc.title}</span>
+                  <span style={{ fontSize: 10, color: primary ? mp.color : "#555", ...m, marginLeft: 6 }}>{match.matchPct}%</span>
+                </div>;
+              })}
+            </div>
+            <div style={{ fontSize: 8, color: "#444", ...m, textTransform: "uppercase", letterSpacing: 2, marginTop: 5 }}>
+              {reading.confidence.level === "high" ? "High confidence" : reading.confidence.level === "moderate" ? "Moderate confidence" : "Provisional reading"}
+              {" \u00b7 "}{reading.confidence.covered}/{reading.confidence.total} facets observed
+              {reading.clarity.isClose && " \u00b7 near-tie \u2014 read both"}
+            </div>
           </div>}
           <div style={{ textAlign: "center", margin: "8px 0", ...m }}><code style={{ color: "#444", fontSize: 8 }}>E{enneagramType}w{wt}::{FACETS.map(f=>Math.round((facetScores[f.id]||0)*9)).join("")}</code></div>
 
