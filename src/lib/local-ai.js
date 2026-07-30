@@ -23,7 +23,7 @@
 // Pure functions. No side effects until actually called.
 // ─────────────────────────────────────────────────────────────
 
-const LOCAL_URL = import.meta.env.VITE_LOCAL_AI_URL || 'http://localhost:8080/v1';
+const LOCAL_URL = import.meta.env.VITE_LOCAL_AI_URL || 'http://localhost:11434/v1';
 const LOCAL_MODEL = import.meta.env.VITE_LOCAL_AI_MODEL || 'local-model';
 const REQUEST_TIMEOUT_MS = 60_000;
 

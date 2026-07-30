@@ -37,7 +37,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 MODELS_DIR = ROOT / "models"
 ENV_FILE = ROOT / ".env"
-DEFAULT_PORT = 8080
+DEFAULT_PORT = 11434
 DEFAULT_URL = f"http://localhost:{DEFAULT_PORT}/v1"
 
 # ── Tiny model for on-device inference ──

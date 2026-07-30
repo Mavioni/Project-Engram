@@ -10,6 +10,7 @@
 <!-- AUTO:log -->
 ## 2026-07-30
 
+- `f9edf6f` Fix CORS: skip local AI health check on non-localhost origins
 - `8e8648b` Remove Supabase — fully static GitHub Pages, local-first
 - `30841a7` Local AI backend — BitNet-compatible on-device inference
 - `1adef57` Psyche Engine — layered profiling surface (Part 3)
