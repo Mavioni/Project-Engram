@@ -1,10 +1,8 @@
 // ─────────────────────────────────────────────────────────────
 // claude.js — In-browser AI client via llama.cpp WASM.
 // ─────────────────────────────────────────────────────────────
-// Uses @wllama/wllama (WebAssembly port of llama.cpp) with a
-// Q2_K quantized GGUF model — near-1-bit, same principle as
-// Microsoft BitNet. The model downloads once (~50 MB) and caches
-// in IndexedDB. All inference runs in a Web Worker.
+// Uses @wllama/wllama (llama.cpp WebAssembly) with Q2_K GGUF.
+// All inference runs in a Web Worker. No server. No API key.
 // ─────────────────────────────────────────────────────────────
 
 import {
@@ -15,7 +13,6 @@ import {
 } from './ai-provider.js';
 import {
   generateResponse,
-  buildChatPrompt,
   buildIrisPrompt,
 } from './browser-ai.js';
 
@@ -25,12 +22,10 @@ export const MODELS = {
 
 export async function requestInsight({ kind, windowDays = 7, context = {} }) {
   try {
-    const systemPrompt = 'You are IRIS, a personality insight engine. Write a concise, warm reflection.';
-    const prompt = buildChatPrompt({
-      systemPrompt,
-      messages: [{ role: 'user', content: insightPrompt(kind, windowDays, context) }],
-    });
-    const content = await generateResponse(prompt, { maxTokens: 200, temperature: 0.7 });
+    const content = await generateResponse([
+      { role: 'system', content: 'You are IRIS, a personality insight engine. Write a concise, warm reflection.' },
+      { role: 'user', content: `Write a ${kind} reflection for the last ${windowDays} days. Context: ${JSON.stringify(context).slice(0, 500)}` },
+    ], { maxTokens: 200, temperature: 0.7 });
     if (content) {
       return normalizeAiResponse({ content }, { model: MODELS.local, provider: AI_PROVIDERS.LOCAL });
     }
@@ -51,11 +46,17 @@ export async function sendChatMessage({ history, message, irisContext }) {
       iris: irisContext,
       entries: irisContext?.entries || [],
     });
-    const prompt = buildChatPrompt({
-      systemPrompt,
-      messages: history || [{ role: 'user', content: message }],
-    });
-    const content = await generateResponse(prompt, { maxTokens: 256, temperature: 0.7 });
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...(history || []),
+    ];
+    // Ensure the last user message is included if not in history
+    if (!messages.some((m) => m.role === 'user' && m.content === message)) {
+      messages.push({ role: 'user', content: message });
+    }
+
+    const content = await generateResponse(messages, { maxTokens: 256, temperature: 0.7 });
     if (content) {
       return normalizeAiResponse({ content }, { model: MODELS.local, provider: AI_PROVIDERS.LOCAL });
     }
@@ -68,9 +69,4 @@ export async function sendChatMessage({ history, message, irisContext }) {
     model: AI_PROVIDERS.FALLBACK,
     provider: AI_PROVIDERS.FALLBACK,
   });
-}
-
-function insightPrompt(kind, windowDays, context) {
-  const windowLabel = kind === 'daily' ? 'today' : `the last ${windowDays} days`;
-  return `Write a ${kind} reflection for ${windowLabel}. Context: ${JSON.stringify(context).slice(0, 500)}`;
 }

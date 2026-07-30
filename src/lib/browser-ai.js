@@ -1,32 +1,27 @@
 // ─────────────────────────────────────────────────────────────
-// browser-ai.js — 1-bit LLM inference via llama.cpp WASM.
+// browser-ai.js — 1-bit LLM via llama.cpp WASM (wllama v3).
 // ─────────────────────────────────────────────────────────────
-// Uses @wllama/wllama — WebAssembly port of llama.cpp that runs
-// GGUF models directly in the browser. Supports IQ1_S (true 1-bit)
-// and Q2_K (near-1-bit) quantization — same principle as BitNet.
+// Uses @wllama/wllama — WebAssembly llama.cpp that loads GGUF
+// models directly in the browser. Downloads ~50 MB Q2_K model
+// from HuggingFace on first use, caches in IndexedDB.
 //
-// The inference engine (~5 MB WASM) loads from the npm package.
-// The model (~50 MB GGUF) downloads from HuggingFace on first use
-// and caches in IndexedDB for instant reload.
-//
-// HOW IT WORKS
-//   1. wllama boots the WASM engine (one-time, ~2s)
-//   2. Downloads GGUF model from URL (one-time, ~50 MB)
-//   3. Caches both in IndexedDB
-//   4. Inference runs in a Web Worker — never blocks the UI
-//   5. ~5-15 tokens/sec on CPU (WASM), faster with SIMD
-//
-// MODEL: SmolLM2-135M-Instruct Q2_K (~50 MB, instruction-tuned)
-//   Quant: Q2_K = 2-bit with k-quant techniques (near BitNet)
-//   For true 1-bit: swap URL to an IQ1_S model when available
+// Q2_K = near-1-bit quantization — same principle as BitNet.
 // ─────────────────────────────────────────────────────────────
 
 import { Wllama } from '@wllama/wllama';
 
+// WASM binaries hosted on jsDelivr CDN — avoids bundling 5MB in the repo.
+// These URLs are stable and versioned to the @wllama/wllama-compat package.
+const WASM_CONFIG = {
+  'wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama-compat@3.5.1/wasm/wllama.wasm',
+};
+
 // ── Model config ────────────────────────────────────────────
-// Single-file GGUF model. Q2_K is near-1-bit quantization.
-// Swap URL for IQ1_S when available for true BitNet parity.
-const MODEL_URL = 'https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-Q2_K.gguf';
+// SmolLM2-135M-Instruct Q2_K (~50 MB). Swap for IQ1_S when available.
+const MODEL = {
+  repo: 'bartowski/SmolLM2-135M-Instruct-GGUF',
+  file: 'SmolLM2-135M-Instruct-Q2_K.gguf',
+};
 
 // ── State ───────────────────────────────────────────────────
 let wllama = null;
@@ -46,13 +41,12 @@ function notify() {
 }
 
 /**
- * Load the model. Downloads GGUF + boots WASM engine on first call.
+ * Load the model. Downloads GGUF + boots WASM on first call.
  * Subsequent calls return instantly (cached in IndexedDB).
  */
 export async function loadModel() {
   if (loadState === 'ready') return wllama;
   if (loadState === 'loading' || loadState === 'downloading') {
-    // Wait for existing load to complete
     return new Promise((resolve, reject) => {
       const check = () => {
         if (loadState === 'ready') resolve(wllama);
@@ -69,22 +63,21 @@ export async function loadModel() {
   notify();
 
   try {
-    // Create wllama instance with multi-thread WASM
-    wllama = new Wllama({
-      'n_threads': Math.max(2, navigator.hardwareConcurrency || 4),
-      // Cache models in IndexedDB for instant reload
-      'cache_type': 'f32', // 'f32' | 'f16' | 'q8_0' | 'q4_0'
-    });
+    // Use CDN-hosted WASM binaries to keep the repo small
+    wllama = new Wllama(WASM_CONFIG);
 
-    // Download + load model from URL. wllama handles caching internally.
     loadState = 'downloading';
     notify();
 
-    await wllama.loadModelFromUrl(MODEL_URL, {
-      progressCallback: (pct) => {
-        loadProgress = Math.round(pct * 100);
-        notify();
+    // loadModelFromHF handles HuggingFace download + IndexedDB cache
+    await wllama.loadModelFromHF(MODEL, {
+      progressCallback: ({ loaded, total }) => {
+        if (total > 0) {
+          loadProgress = Math.round((loaded / total) * 100);
+          notify();
+        }
       },
+      n_threads: Math.max(2, navigator.hardwareConcurrency || 4),
     });
 
     loadState = 'ready';
@@ -109,49 +102,25 @@ export function getLoadState() {
 }
 
 /**
- * Generate a response from the in-browser model.
+ * Generate a chat response from the in-browser model.
+ * Uses OpenAI-compatible chat completion API (wllama v3).
  */
-export async function generateResponse(prompt, opts = {}) {
+export async function generateResponse(messages, opts = {}) {
   const llm = await loadModel();
   const { maxTokens = 256, temperature = 0.7 } = opts;
 
-  // Build the full prompt using Llama 2 chat format
-  const fullPrompt = buildChatPrompt({ messages: [{ role: 'user', content: prompt }] });
+  // Build messages array in OpenAI format
+  const chatMessages = Array.isArray(messages) ? messages : [{ role: 'user', content: messages }];
 
-  let response = '';
-  await llm.createCompletion(fullPrompt, {
-    nPredict: maxTokens,
+  const response = await llm.createChatCompletion({
+    messages: chatMessages,
+    max_tokens: maxTokens,
     temperature,
-    topP: 0.9,
-    onToken: (_tokens) => {
-      // tokens is an array of token IDs; we track completion length
-    },
-    onTextChunk: (text) => {
-      response += text;
-    },
+    top_k: 40,
+    top_p: 0.9,
   });
 
-  return response.trim();
-}
-
-/**
- * Build a chat prompt in Llama 2 format.
- * SmolLM2 uses the standard Llama chat template.
- */
-export function buildChatPrompt({ systemPrompt, messages }) {
-  const parts = [];
-
-  if (systemPrompt) {
-    parts.push(`<|system|>\n${systemPrompt}</s>`);
-  }
-
-  for (const msg of messages || []) {
-    const role = msg.role === 'user' ? 'user' : 'assistant';
-    parts.push(`<|${role}|>\n${msg.content}</s>`);
-  }
-
-  parts.push('<|assistant|>\n');
-  return parts.join('\n');
+  return response.choices?.[0]?.message?.content?.trim() || '';
 }
 
 /**
@@ -175,7 +144,7 @@ export function buildIrisPrompt({ iris, entries }) {
     'Respond in 2-4 sentences. Be specific and kind.',
   ];
 
-  if (type) parts.push(`User's Enneagram type is ${type}. Top resonances: ${topScores}.`);
+  if (type) parts.push(`User Enneagram type: ${type}. Top resonances: ${topScores}.`);
   if (recentNote) parts.push(`Recent journal: ${recentNote.slice(0, 200)}`);
 
   return parts.join(' ');

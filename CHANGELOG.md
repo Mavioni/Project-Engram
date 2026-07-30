@@ -10,6 +10,7 @@
 <!-- AUTO:log -->
 ## 2026-07-30
 
+- `8f34084` BitNet: replace ONNX with llama.cpp WASM + Q2_K GGUF model
 - `8c7dd22` Better fallback message + show actual model error in UI
 - `067576d` Switch to Xenova/TinyLlama-1.1B-Chat — no auth required
 - `84d4ce3` In-browser AI — transformers.js model runs fully on-device
