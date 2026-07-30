@@ -30,7 +30,7 @@ const seed = (patch = {}) => {
       takenAt: null,
       history: [],
     },
-    subscription: { tier: 'free', aiCreditsUsed: 0, aiCreditsResetAt: null },
+    subscription: { tier: 'free', aiCreditsUsed: 0 },
     engram: {
       xp: 0,
       level: 1,

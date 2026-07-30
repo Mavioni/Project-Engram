@@ -47,6 +47,8 @@ export function useSelfMirror() {
   const setUnlocked = useSelfMirrorStore((s) => s.setUnlocked);
   const setLocked = useSelfMirrorStore((s) => s.setLocked);
   const bumpActivity = useSelfMirrorStore((s) => s.bumpActivity);
+  const redactionRules = useSelfMirrorStore((s) => s.redactionRules);
+  const setRedactionRules = useSelfMirrorStore((s) => s.setRedactionRules);
 
   const keyRef = useRef({ current: null });
   const idleCleanupRef = useRef(/** @type {(() => void) | null} */ (null));
@@ -56,6 +58,7 @@ export function useSelfMirror() {
   );
   const [entries, setEntries] = useState(/** @type {Array<{id:string, createdDay:string, sourceKind:string, text:string, mood?:number}>} */ ([]));
   const [entriesBusy, setEntriesBusy] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeWindow, setActiveWindowState] = useState(WINDOW_IDS.MID);
   const [error, setError] = useState(/** @type {string | null} */ (null));
   const [busy, setBusy] = useState(false);
@@ -148,6 +151,28 @@ export function useSelfMirror() {
     [bumpActivity],
   );
 
+  /**
+   * Load ALL entries from the beginning of time for full-text search.
+   */
+  const searchAllEntries = useCallback(
+    async () => {
+      const key = keyRef.current.current;
+      if (!key) return;
+      setEntriesBusy(true);
+      try {
+        const result = await loadEntriesInRange('0000-01-01', new Date().toISOString().slice(0, 10), key);
+        result.sort((a, b) => (a.createdDay < b.createdDay ? 1 : -1));
+        setEntries(result);
+      } catch (e) {
+        console.warn('Self Mirror: search failed:', e.message);
+      } finally {
+        setEntriesBusy(false);
+        bumpActivity();
+      }
+    },
+    [bumpActivity],
+  );
+
   useEffect(
     () => () => {
       if (idleCleanupRef.current) idleCleanupRef.current();
@@ -164,6 +189,11 @@ export function useSelfMirror() {
     entries,
     entriesBusy,
     loadEntries,
+    searchQuery,
+    setSearchQuery,
+    searchAllEntries,
+    redactionRules,
+    setRedactionRules,
     activeWindow,
     setActiveWindow,
     error,

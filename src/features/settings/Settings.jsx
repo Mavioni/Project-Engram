@@ -33,6 +33,7 @@ export default function Settings() {
   const profile = useStore((s) => s.profile);
   const iris = useStore((s) => s.iris);
   const subscription = useStore((s) => s.subscription);
+  const resetAiCredits = useStore((s) => s.resetAiCredits);
   const setName = useStore((s) => s.setName);
   const clearIris = useStore((s) => s.clearIris);
   const hardReset = useStore((s) => s.hardReset);
@@ -213,10 +214,10 @@ export default function Settings() {
         </div>
         <div style={{ fontSize: 13, color: 'var(--ink-soft)', fontStyle: 'italic', marginTop: 2 }}>
           {subscription.tier === 'pro'
-            ? 'Unlimited Claude insights + chat'
-            : '3 free Claude insights per month'}
+            ? 'Unlimited AI insights + chat'
+            : `${Math.max(0, 3 - (subscription.aiCreditsUsed || 0))} free insights remaining`}
         </div>
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
           <Button
             variant={subscription.tier === 'pro' ? 'ghost' : 'solid'}
             tone="var(--accent)"
@@ -226,6 +227,11 @@ export default function Settings() {
           >
             {subscription.tier === 'pro' ? 'Manage plan' : 'Upgrade to Pro'}
           </Button>
+          {(subscription.aiCreditsUsed || 0) > 0 && (
+            <Button variant="subtle" size="sm" tone="var(--ink-dim)" onClick={resetAiCredits}>
+              Reset credits
+            </Button>
+          )}
         </div>
       </Card>
 

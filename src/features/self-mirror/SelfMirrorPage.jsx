@@ -35,7 +35,7 @@ const MIRROR_ACCENT = '#c7cfff';
 const METER_STEPS = 5;
 
 export default function SelfMirrorPage() {
-  const { unlocked, unlock, lock, snapshots, entries, entriesBusy, loadEntries, activeWindow, setActiveWindow, error, busy } =
+  const { unlocked, unlock, lock, snapshots, entries, entriesBusy, loadEntries, searchQuery, setSearchQuery, searchAllEntries, redactionRules, setRedactionRules, activeWindow, setActiveWindow, error, busy } =
     useSelfMirror();
   const [passphrase, setPassphrase] = useState('');
 
@@ -84,6 +84,11 @@ export default function SelfMirrorPage() {
           entries={entries}
           entriesBusy={entriesBusy}
           loadEntries={loadEntries}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          searchAllEntries={searchAllEntries}
+          redactionRules={redactionRules}
+          setRedactionRules={setRedactionRules}
           activeWindow={activeWindow}
           setActiveWindow={setActiveWindow}
           accent={MIRROR_ACCENT}

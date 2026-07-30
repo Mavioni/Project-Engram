@@ -34,11 +34,13 @@ const WINDOWS = [
   { id: 7, label: '7d' },
   { id: 30, label: '30d' },
   { id: 90, label: '90d' },
+  { id: -1, label: 'Custom' },
 ];
 
 export default function Insights() {
   const navigate = useNavigate();
   const [windowDays, setWindowDays] = useState(30);
+  const [customDays, setCustomDays] = useState('');
   const [generating, setGenerating] = useState(null);
   const [error, setError] = useState(null);
 
@@ -122,16 +124,19 @@ export default function Insights() {
         {WINDOWS.map((w) => (
           <button
             key={w.id}
-            onClick={() => setWindowDays(w.id)}
+            onClick={() => { setWindowDays(w.id === -1 ? 30 : w.id); setCustomDays(''); }}
             className="mono"
             style={{
               padding: '8px 16px',
               borderRadius: 999,
               border: `1px solid ${
-                windowDays === w.id ? 'var(--border-strong)' : 'var(--border)'
+                (w.id === -1 ? windowDays !== 7 && windowDays !== 30 && windowDays !== 90 : windowDays === w.id)
+                  ? 'var(--border-strong)' : 'var(--border)'
               }`,
-              background: windowDays === w.id ? 'var(--bg-raised)' : 'transparent',
-              color: windowDays === w.id ? 'var(--ink)' : 'var(--ink-dim)',
+              background: (w.id === -1 ? windowDays !== 7 && windowDays !== 30 && windowDays !== 90 : windowDays === w.id)
+                ? 'var(--bg-raised)' : 'transparent',
+              color: (w.id === -1 ? windowDays !== 7 && windowDays !== 30 && windowDays !== 90 : windowDays === w.id)
+                ? 'var(--ink)' : 'var(--ink-dim)',
               fontSize: 10,
               letterSpacing: '0.22em',
               textTransform: 'uppercase',
@@ -141,6 +146,25 @@ export default function Insights() {
             {w.label}
           </button>
         ))}
+        <input
+          type="number"
+          value={customDays}
+          onChange={(e) => {
+            const v = e.target.value;
+            setCustomDays(v);
+            const n = parseInt(v, 10);
+            if (n >= 1 && n <= 365) setWindowDays(n);
+          }}
+          placeholder="days"
+          min={1}
+          max={365}
+          style={{
+            width: 48, padding: '8px 6px', borderRadius: 999,
+            border: `1px solid var(--border)`, background: 'transparent',
+            color: 'var(--ink-dim)', fontSize: 10, fontFamily: 'var(--mono)',
+            letterSpacing: '0.1em', textAlign: 'center', outline: 'none',
+          }}
+        />
       </div>
 
       {/* Mood trend */}

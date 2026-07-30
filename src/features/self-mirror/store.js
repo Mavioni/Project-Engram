@@ -26,6 +26,7 @@ const LOCKED_STATE = Object.freeze({
   unlocked: false,
   lastActivityAt: null,
   keyRef: Object.freeze({ current: null }),
+  redactionRules: Object.freeze({ familyNames: [], locations: [], irisSensitive: [] }),
 });
 
 /**
@@ -70,6 +71,16 @@ export const useSelfMirrorStore = create((set) => ({
   /** Refresh lastActivityAt on operator interaction. No-op if locked. */
   bumpActivity: () =>
     set((s) => (s.unlocked ? { lastActivityAt: Date.now() } : {})),
+
+  /** Set display-time redaction rules. Cleared on lock. */
+  setRedactionRules: (rules) =>
+    set(() => ({
+      redactionRules: {
+        familyNames: rules.familyNames || [],
+        locations: rules.locations || [],
+        irisSensitive: rules.irisSensitive || [],
+      },
+    })),
 }));
 
 // ── Selectors ───────────────────────────────────────────────

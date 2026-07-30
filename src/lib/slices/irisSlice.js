@@ -19,7 +19,6 @@ export function initialSubscription() {
     renewsAt: null,
     customerId: null,
     aiCreditsUsed: 0,
-    aiCreditsResetAt: null,
   };
 }
 
@@ -54,6 +53,11 @@ export function createIrisSlice(_set, _get) {
           ...s.subscription,
           aiCreditsUsed: (s.subscription.aiCreditsUsed || 0) + 1,
         },
+      })),
+
+    resetAiCredits: () =>
+      _set((s) => ({
+        subscription: { ...s.subscription, aiCreditsUsed: 0 },
       })),
   };
 }
