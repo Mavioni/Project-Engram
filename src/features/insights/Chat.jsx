@@ -14,6 +14,7 @@ import Empty from '../../components/Empty.jsx';
 import { useStore } from '../../lib/store.js';
 import { sendChatMessage } from '../../lib/claude.js';
 import { hasSupabase } from '../../lib/supabase.js';
+import { isLocalAvailable } from '../../lib/local-ai.js';
 
 export default function Chat() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ export default function Chat() {
   const [activeId, setActiveId] = useState(threads[0]?.id || null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [localAvailable, setLocalAvailable] = useState(false);
   const endRef = useRef(null);
 
   const active = threads.find((t) => t.id === activeId);
@@ -32,6 +34,13 @@ export default function Chat() {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [active?.messages.length]);
+
+  // Check for local AI availability
+  useEffect(() => {
+    isLocalAvailable().then(setLocalAvailable);
+    const interval = setInterval(() => isLocalAvailable().then(setLocalAvailable), 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const startNew = () => {
     const id = startChatThread(new Date().toLocaleDateString());
@@ -121,10 +130,16 @@ export default function Chat() {
         </Button>
       }
     >
-      {!hasSupabase() && (
+      {localAvailable ? (
+        <Card style={{ marginBottom: 12, borderColor: 'rgba(105,219,124,0.35)' }}>
+          <div style={{ fontSize: 12, color: '#69db7c', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
+            Local model connected — responses will be generated on-device.
+          </div>
+        </Card>
+      ) : !hasSupabase() && (
         <Card style={{ marginBottom: 12, borderColor: 'rgba(255,209,102,0.35)' }}>
           <div style={{ fontSize: 12, color: '#ffd166', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
-            Backend not configured — messages will get a local fallback response. See README.
+            Backend not configured — messages will get a local fallback response. Start a local model or configure Supabase.
           </div>
         </Card>
       )}
@@ -145,7 +160,7 @@ export default function Chat() {
                 padding: '8px 14px',
               }}
             >
-              Claude is writing…
+              IRIS is writing…
             </div>
           )}
           <div ref={endRef} />
