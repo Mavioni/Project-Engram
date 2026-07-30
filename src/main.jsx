@@ -23,12 +23,12 @@ try {
   if (raw) {
     const parsed = JSON.parse(raw);
     const theme = parsed?.state?.theme;
-    applyTheme(theme === 'dark' ? 'dark' : 'light');
+    applyTheme(theme === 'light' ? 'light' : 'dark');
   } else {
-    applyTheme('light');
+    applyTheme('dark');
   }
 } catch {
-  applyTheme('light');
+  applyTheme('dark');
 }
 
 // ─────────────────────────────────────────────────────────────

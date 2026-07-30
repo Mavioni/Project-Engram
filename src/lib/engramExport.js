@@ -177,8 +177,12 @@ const dustG = new THREE.BufferGeometry(); dustG.setAttribute('position', new THR
 const dust = new THREE.Points(dustG, new THREE.PointsMaterial({ color: new THREE.Color(moodHue[0], moodHue[1], moodHue[2]), size: 0.028, transparent: true, opacity: 0.6, sizeAttenuation: true }));
 scene.add(dust);
 
-addEventListener('resize', () => { camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+addEventListener('resize', () => { if(!innerWidth||!innerHeight)return; camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+renderer.domElement.addEventListener('webglcontextlost', (e) => { e.preventDefault(); contextLost = true; });
+renderer.domElement.addEventListener('webglcontextrestored', () => { contextLost = false; });
+let contextLost = false;
 function loop(t) {
+  if(contextLost){ requestAnimationFrame(loop); return; }
   pupil.scale.setScalar(1 + Math.sin(t*0.0008)*0.04);
   const pos = dust.geometry.attributes.position.array;
   for (let i = 0; i < pos.length/3; i++) {

@@ -118,11 +118,20 @@ function IrisScene({ facetScores, enneagramType }) {
   useEffect(() => {
     const c = mountRef.current; if (!c) return;
     const w = c.clientWidth, h = c.clientHeight;
+    // Guard: zero-dimension containers cause WebGL context loss.
+    if (!w || !h) return;
     const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(50, w/h, 0.1, 1000);
     cam.position.set(0, 0, 5.5);
     const ren = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     ren.setSize(w, h); ren.setPixelRatio(Math.min(devicePixelRatio, 2)); ren.setClearColor(0x06060e, 1);
     c.appendChild(ren.domElement);
+
+    // ── Context loss handling ──────────────────────────────
+    let contextLost = false;
+    const onContextLost = (e) => { e.preventDefault(); contextLost = true; cancelAnimationFrame(frameRef.current); };
+    const onContextRestored = () => { contextLost = false; anim(); };
+    ren.domElement.addEventListener('webglcontextlost', onContextLost);
+    ren.domElement.addEventListener('webglcontextrestored', onContextRestored);
     const tc = enneagramType ? ENNEAGRAM_PROFILES[enneagramType]?.color || "#fff" : "#4a90d9";
     const cc = new THREE.Color(tc);
     const cA = (facetScores.analytical+facetScores.pattern+facetScores.abstract+facetScores.pragmatic)/4;
@@ -158,10 +167,10 @@ function IrisScene({ facetScores, enneagramType }) {
     let mx=0,my=0;
     c.addEventListener("mousemove",e=>{const r=c.getBoundingClientRect();mx=((e.clientX-r.left)/w-.5)*2;my=((e.clientY-r.top)/h-.5)*2});
     c.addEventListener("touchmove",e=>{if(e.touches.length){const r=c.getBoundingClientRect();mx=((e.touches[0].clientX-r.left)/w-.5)*2;my=((e.touches[0].clientY-r.top)/h-.5)*2}},{passive:true});
-    let t=0;const anim=()=>{frameRef.current=requestAnimationFrame(anim);t+=.016;g.rotation.x+=rx+my*.003;g.rotation.y+=ry+mx*.003;g.rotation.z+=rz;const p=1+Math.sin(t*1.5)*.15;cM.scale.set(p,p,p);gM.scale.set(p*1.1,p*1.1,p*1.1);cMat.opacity=.7+Math.sin(t*2)*.2;gMat.opacity=.1+Math.sin(t*1.2)*.08;pts.rotation.y+=3e-4;pts.rotation.x+=1e-4;ren.render(scene,cam)};anim();
-    const onR=()=>{const nw=c.clientWidth,nh=c.clientHeight;cam.aspect=nw/nh;cam.updateProjectionMatrix();ren.setSize(nw,nh)};
+    let t=0;const anim=()=>{frameRef.current=requestAnimationFrame(anim);if(contextLost)return;t+=.016;g.rotation.x+=rx+my*.003;g.rotation.y+=ry+mx*.003;g.rotation.z+=rz;const p=1+Math.sin(t*1.5)*.15;cM.scale.set(p,p,p);gM.scale.set(p*1.1,p*1.1,p*1.1);cMat.opacity=.7+Math.sin(t*2)*.2;gMat.opacity=.1+Math.sin(t*1.2)*.08;pts.rotation.y+=3e-4;pts.rotation.x+=1e-4;ren.render(scene,cam)};anim();
+    const onR=()=>{const nw=c.clientWidth,nh=c.clientHeight;if(!nw||!nh)return;cam.aspect=nw/nh;cam.updateProjectionMatrix();ren.setSize(nw,nh)};
     window.addEventListener("resize",onR);
-    return()=>{cancelAnimationFrame(frameRef.current);window.removeEventListener("resize",onR);ren.dispose();if(c.contains(ren.domElement))c.removeChild(ren.domElement)};
+    return()=>{cancelAnimationFrame(frameRef.current);window.removeEventListener("resize",onR);ren.domElement.removeEventListener('webglcontextlost',onContextLost);ren.domElement.removeEventListener('webglcontextrestored',onContextRestored);ren.dispose();if(c.contains(ren.domElement))c.removeChild(ren.domElement)};
   },[facetScores,enneagramType]);
   return <div ref={mountRef} style={{width:"100%",height:"100%",touchAction:"none"}} />;
 }

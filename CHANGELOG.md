@@ -10,6 +10,7 @@
 <!-- AUTO:log -->
 ## 2026-07-30
 
+- `4f5ffc1` Fix wllama: correct constructor + bundled WASM CDN config
 - `8f34084` BitNet: replace ONNX with llama.cpp WASM + Q2_K GGUF model
 - `8c7dd22` Better fallback message + show actual model error in UI
 - `067576d` Switch to Xenova/TinyLlama-1.1B-Chat — no auth required

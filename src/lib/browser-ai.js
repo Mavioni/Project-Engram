@@ -11,9 +11,11 @@
 import { Wllama } from '@wllama/wllama';
 
 // WASM binaries hosted on jsDelivr CDN — avoids bundling 5MB in the repo.
-// These URLs are stable and versioned to the @wllama/wllama-compat package.
+// wllama v3 pathConfig is keyed by model ID; 'default' covers all models.
 const WASM_CONFIG = {
-  'wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama-compat@3.5.1/wasm/wllama.wasm',
+  'default': {
+    'wllama.wasm': 'https://cdn.jsdelivr.net/npm/@wllama/wllama-compat@3.5.1/wasm/wllama.wasm',
+  },
 };
 
 // ── Model config ────────────────────────────────────────────

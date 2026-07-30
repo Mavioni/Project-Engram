@@ -85,7 +85,7 @@ export const useStore = create(
   persist(
     (set, _get) => ({
       schemaVersion: SCHEMA_VERSION,
-      theme: 'light', // 'light' | 'dark' — app-wide UI theme
+      theme: 'dark', // 'light' | 'dark' — app-wide UI theme
       profile: initialProfile(),
       iris: initialIris(),
       subscription: initialSubscription(),
