@@ -15,7 +15,7 @@ import {
   startIdleWatch,
 } from './store.js';
 import { deriveKey } from './storage/crypto.js';
-import { loadSnapshot, rebuildAllSnapshots } from './storage/repository.js';
+import { loadSnapshot, rebuildAllSnapshots, loadEntriesInRange } from './storage/repository.js';
 import { getMeta, putMeta } from './storage/db.js';
 import { DEFAULT_KDF_PARAMS, WINDOW_IDS } from './model/schema.js';
 import { scoreEntropy, MIN_ENTROPY_SCORE } from './privacy/entropy.js';
@@ -54,6 +54,8 @@ export function useSelfMirror() {
   const [snapshots, setSnapshots] = useState(
     /** @type {SnapshotBundle | null} */ (null),
   );
+  const [entries, setEntries] = useState(/** @type {Array<{id:string, createdDay:string, sourceKind:string, text:string, mood?:number}>} */ ([]));
+  const [entriesBusy, setEntriesBusy] = useState(false);
   const [activeWindow, setActiveWindowState] = useState(WINDOW_IDS.MID);
   const [error, setError] = useState(/** @type {string | null} */ (null));
   const [busy, setBusy] = useState(false);
@@ -65,6 +67,7 @@ export function useSelfMirror() {
     }
     setLocked();
     setSnapshots(null);
+    setEntries([]);
     setError(null);
   }, [setLocked]);
 
@@ -120,6 +123,31 @@ export function useSelfMirror() {
     [bumpActivity],
   );
 
+  /**
+   * Load decrypted entries for a date range. Uses the in-memory key.
+   * @param {string} fromDay  YYYY-MM-DD
+   * @param {string} toDay    YYYY-MM-DD
+   */
+  const loadEntries = useCallback(
+    async (fromDay, toDay) => {
+      const key = keyRef.current.current;
+      if (!key) return;
+      setEntriesBusy(true);
+      try {
+        const result = await loadEntriesInRange(fromDay, toDay, key);
+        result.sort((a, b) => (a.createdDay < b.createdDay ? 1 : -1));
+        setEntries(result);
+      } catch (e) {
+        console.warn('Self Mirror: failed to load entries:', e.message);
+        setEntries([]);
+      } finally {
+        setEntriesBusy(false);
+        bumpActivity();
+      }
+    },
+    [bumpActivity],
+  );
+
   useEffect(
     () => () => {
       if (idleCleanupRef.current) idleCleanupRef.current();
@@ -133,6 +161,9 @@ export function useSelfMirror() {
     unlock,
     lock,
     snapshots,
+    entries,
+    entriesBusy,
+    loadEntries,
     activeWindow,
     setActiveWindow,
     error,

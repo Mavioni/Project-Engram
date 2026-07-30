@@ -10,6 +10,7 @@
 <!-- AUTO:log -->
 ## 2026-07-30
 
+- `630831b` refactor: split store into domain slices (profile, journal, ai, growth, iris)
 - `58b09e9` refactor: split auth context (session vs actions), fix unused get param
 - `2202097` perf: replace self-mirror idle polling with reactive setTimeout
 - `94c8d14` feat: AI error diagnostics — capped retries, error types, retry button

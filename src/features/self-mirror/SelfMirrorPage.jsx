@@ -35,7 +35,7 @@ const MIRROR_ACCENT = '#c7cfff';
 const METER_STEPS = 5;
 
 export default function SelfMirrorPage() {
-  const { unlocked, unlock, lock, snapshots, activeWindow, setActiveWindow, error, busy } =
+  const { unlocked, unlock, lock, snapshots, entries, entriesBusy, loadEntries, activeWindow, setActiveWindow, error, busy } =
     useSelfMirror();
   const [passphrase, setPassphrase] = useState('');
 
@@ -81,6 +81,9 @@ export default function SelfMirrorPage() {
       {unlocked ? (
         <SelfMirrorPanel
           snapshots={snapshots}
+          entries={entries}
+          entriesBusy={entriesBusy}
+          loadEntries={loadEntries}
           activeWindow={activeWindow}
           setActiveWindow={setActiveWindow}
           accent={MIRROR_ACCENT}
