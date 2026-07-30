@@ -123,7 +123,7 @@ export default function Chat() {
       {modelState.state === 'error' && (
         <Card style={{ marginBottom: 12, borderColor: 'rgba(255,107,107,0.35)' }}>
           <div style={{ fontSize: 12, color: '#ff6b6b', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
-            Model failed to load. Your browser may not support WebGPU/WASM, or you&apos;re offline on first visit.
+            Model failed to load. {modelState.error ? modelState.error.slice(0, 200) : 'Your browser may not support WebGPU/WASM, or you&apos;re offline on first visit.'}
           </div>
         </Card>
       )}

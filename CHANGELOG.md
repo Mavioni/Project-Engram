@@ -10,6 +10,7 @@
 <!-- AUTO:log -->
 ## 2026-07-30
 
+- `067576d` Switch to Xenova/TinyLlama-1.1B-Chat — no auth required
 - `84d4ce3` In-browser AI — transformers.js model runs fully on-device
 - `21b6b7b` Switch default local AI port to 11434 (Ollama)
 - `f9edf6f` Fix CORS: skip local AI health check on non-localhost origins

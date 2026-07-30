@@ -96,6 +96,7 @@ export async function loadModel() {
       } catch (e2) {
         loadState = 'error';
         loadError = e2.message;
+        console.error('Browser AI load failed (both WebGPU and WASM):', e2.message);
         notify();
         throw e2;
       }

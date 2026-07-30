@@ -50,7 +50,7 @@ export function fallbackInsight(kind) {
 }
 
 export function fallbackChatMessage() {
-  return "I can't reach an AI provider yet. Configure the hosted Supabase path or a future local provider, and try again. In the meantime, your journal is still saved locally.";
+  return "The in-browser AI model couldn't load. This might be because the model is still downloading (~400MB on first visit — check the loading bar above), your browser doesn't support WebGPU/WASM, or you're offline on your first visit. Once cached, the model loads instantly. Try refreshing in a moment.";
 }
 
 function inferProvider(model) {
