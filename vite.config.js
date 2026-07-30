@@ -21,12 +21,6 @@ const base = process.env.BASE_PATH || '/';
 
 export default defineConfig({
   base,
-  // transformers.js loads .wasm files from the same origin. Vite
-  // must copy ONNX Runtime Web's WASM binaries into the build output
-  // and serve them with the correct MIME type.
-  optimizeDeps: {
-    exclude: ['@huggingface/transformers'],
-  },
   plugins: [
     react(),
     VitePWA({

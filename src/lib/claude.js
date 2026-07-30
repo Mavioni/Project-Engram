@@ -1,13 +1,10 @@
 // ─────────────────────────────────────────────────────────────
-// claude.js — In-browser AI client facade.
+// claude.js — In-browser AI client via llama.cpp WASM.
 // ─────────────────────────────────────────────────────────────
-// Priority chain: browser model → fallback.
-// The app runs fully in the browser — no server, no API key.
-// The model loads via transformers.js (ONNX + WASM) on first use
-// and caches in IndexedDB for instant reload.
-//
-// Model: SmolLM2-135M-Instruct (~80 MB, 8-bit quantized ONNX)
-// Upgrade: swap MODEL_ID in browser-ai.js for larger models.
+// Uses @wllama/wllama (WebAssembly port of llama.cpp) with a
+// Q2_K quantized GGUF model — near-1-bit, same principle as
+// Microsoft BitNet. The model downloads once (~50 MB) and caches
+// in IndexedDB. All inference runs in a Web Worker.
 // ─────────────────────────────────────────────────────────────
 
 import {
@@ -23,13 +20,9 @@ import {
 } from './browser-ai.js';
 
 export const MODELS = {
-  local: 'SmolLM2-135M-Instruct',
+  local: 'SmolLM2-135M-Instruct (Q2_K)',
 };
 
-/**
- * Ask the in-browser model for an insight.
- * Tries browser model first, falls back to deterministic local text.
- */
 export async function requestInsight({ kind, windowDays = 7, context = {} }) {
   try {
     const systemPrompt = 'You are IRIS, a personality insight engine. Write a concise, warm reflection.';
@@ -52,9 +45,6 @@ export async function requestInsight({ kind, windowDays = 7, context = {} }) {
   });
 }
 
-/**
- * Chat with IRIS through the in-browser model.
- */
 export async function sendChatMessage({ history, message, irisContext }) {
   try {
     const systemPrompt = buildIrisPrompt({

@@ -21,11 +21,11 @@
     "test:ci": "vitest run"
   },
   "dependencies": {
-    "@huggingface/transformers": "^4.2.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.0",
     "@react-three/postprocessing": "^3.0.4",
     "@supabase/supabase-js": "^2.104.0",
+    "@wllama/wllama": "^3.5.1",
     "date-fns": "^4.1.0",
     "dexie": "^4.0.8",
     "react": "^19.2.5",

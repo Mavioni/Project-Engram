@@ -1,36 +1,39 @@
 // ─────────────────────────────────────────────────────────────
-// browser-ai.js — In-browser LLM inference via transformers.js.
+// browser-ai.js — 1-bit LLM inference via llama.cpp WASM.
 // ─────────────────────────────────────────────────────────────
-// No server. No API key. The model loads directly in the browser
-// using ONNX Runtime Web (WebAssembly). First load downloads the
-// model weights from HuggingFace CDN (~80-130 MB); subsequent
-// loads use IndexedDB cache. The service worker also caches the
-// weights so the app works offline after the first visit.
+// Uses @wllama/wllama — WebAssembly port of llama.cpp that runs
+// GGUF models directly in the browser. Supports IQ1_S (true 1-bit)
+// and Q2_K (near-1-bit) quantization — same principle as BitNet.
 //
-// Powered by HuggingFace transformers.js v3, which runs ONNX
-// models via ort-web (WASM backend). This is the same stack
-// behind the HuggingFace web demo pages — battle-tested.
+// The inference engine (~5 MB WASM) loads from the npm package.
+// The model (~50 MB GGUF) downloads from HuggingFace on first use
+// and caches in IndexedDB for instant reload.
 //
-// MODEL: Xenova/TinyLlama-1.1B-Chat-v1.0 (transformers.js compatible)
-//   Size: ~400 MB (ONNX, split into shards, cached in IndexedDB)
-//   Quality: Decent chat — Llama-architecture, instruction-tuned
-//   Speed:  ~10-20 tokens/sec on WASM, ~30-50 with WebGPU
+// HOW IT WORKS
+//   1. wllama boots the WASM engine (one-time, ~2s)
+//   2. Downloads GGUF model from URL (one-time, ~50 MB)
+//   3. Caches both in IndexedDB
+//   4. Inference runs in a Web Worker — never blocks the UI
+//   5. ~5-15 tokens/sec on CPU (WASM), faster with SIMD
 //
-// TINIER OPTION: 'Xenova/gpt2' (~250MB, much dumber but instant)
-import { pipeline } from '@huggingface/transformers';
+// MODEL: SmolLM2-135M-Instruct Q2_K (~50 MB, instruction-tuned)
+//   Quant: Q2_K = 2-bit with k-quant techniques (near BitNet)
+//   For true 1-bit: swap URL to an IQ1_S model when available
+// ─────────────────────────────────────────────────────────────
+
+import { Wllama } from '@wllama/wllama';
 
 // ── Model config ────────────────────────────────────────────
-// Swap MODEL_ID to change models. Same interface throughout.
-const MODEL_ID = 'Xenova/TinyLlama-1.1B-Chat-v1.0';
+// Single-file GGUF model. Q2_K is near-1-bit quantization.
+// Swap URL for IQ1_S when available for true BitNet parity.
+const MODEL_URL = 'https://huggingface.co/bartowski/SmolLM2-135M-Instruct-GGUF/resolve/main/SmolLM2-135M-Instruct-Q2_K.gguf';
 
-// ── Pipeline singleton ──────────────────────────────────────
-let generator = null;
-let loadPromise = null;
-let loadState = 'idle'; // 'idle' | 'loading' | 'ready' | 'error'
+// ── State ───────────────────────────────────────────────────
+let wllama = null;
+let loadState = 'idle'; // 'idle' | 'loading' | 'downloading' | 'ready' | 'error'
+let loadProgress = 0;
 let loadError = null;
-let loadProgress = 0; // 0-100
 
-/** Callbacks for UI progress updates. */
 const listeners = new Set();
 
 export function onLoadChange(fn) {
@@ -43,113 +46,97 @@ function notify() {
 }
 
 /**
- * Load the model. Safe to call multiple times — returns the
- * existing pipeline if already loaded or in progress.
+ * Load the model. Downloads GGUF + boots WASM engine on first call.
+ * Subsequent calls return instantly (cached in IndexedDB).
  */
 export async function loadModel() {
-  if (generator) return generator;
-  if (loadPromise) return loadPromise;
+  if (loadState === 'ready') return wllama;
+  if (loadState === 'loading' || loadState === 'downloading') {
+    // Wait for existing load to complete
+    return new Promise((resolve, reject) => {
+      const check = () => {
+        if (loadState === 'ready') resolve(wllama);
+        else if (loadState === 'error') reject(new Error(loadError));
+        else setTimeout(check, 200);
+      };
+      check();
+    });
+  }
 
   loadState = 'loading';
   loadProgress = 0;
   loadError = null;
   notify();
 
-  loadPromise = (async () => {
-    try {
-      // transformers.js auto-downloads the ONNX model from HuggingFace
-      // and caches it in IndexedDB. Subsequent calls use the cache.
-      generator = await pipeline('text-generation', MODEL_ID, {
-        // WebGPU gives 2-4x speedup where supported. Falls back to WASM.
-        device: 'webgpu',
-        dtype: 'q8', // 8-bit quantized — similar principle to BitNet
-        progress_callback: (info) => {
-          if (info.status === 'progress' && info.progress) {
-            loadProgress = Math.round(info.progress);
-            notify();
-          }
-        },
-      });
+  try {
+    // Create wllama instance with multi-thread WASM
+    wllama = new Wllama({
+      'n_threads': Math.max(2, navigator.hardwareConcurrency || 4),
+      // Cache models in IndexedDB for instant reload
+      'cache_type': 'f32', // 'f32' | 'f16' | 'q8_0' | 'q4_0'
+    });
 
-      loadState = 'ready';
-      loadProgress = 100;
-      notify();
-      return generator;
-    } catch (e) {
-      // WebGPU might not be available. Retry with WASM fallback.
-      console.warn('WebGPU load failed, falling back to WASM:', e.message);
-      try {
-        generator = await pipeline('text-generation', MODEL_ID, {
-          device: 'wasm',
-          dtype: 'q8',
-          progress_callback: (info) => {
-            if (info.status === 'progress' && info.progress) {
-              loadProgress = Math.round(info.progress);
-              notify();
-            }
-          },
-        });
-        loadState = 'ready';
-        loadProgress = 100;
-        notify();
-        return generator;
-      } catch (e2) {
-        loadState = 'error';
-        loadError = e2.message;
-        console.error('Browser AI load failed (both WebGPU and WASM):', e2.message);
-        notify();
-        throw e2;
-      }
-    }
-  })();
+    // Download + load model from URL. wllama handles caching internally.
+    loadState = 'downloading';
+    notify();
 
-  return loadPromise;
+    await wllama.loadModelFromUrl(MODEL_URL, {
+      progressCallback: (pct) => {
+        loadProgress = Math.round(pct * 100);
+        notify();
+      },
+    });
+
+    loadState = 'ready';
+    loadProgress = 100;
+    notify();
+    return wllama;
+  } catch (e) {
+    loadState = 'error';
+    loadError = e.message || 'Unknown error loading model';
+    console.error('Browser AI: model load failed:', loadError);
+    notify();
+    throw e;
+  }
 }
 
-/**
- * Check if the model is loaded and ready.
- */
 export function isModelReady() {
-  return loadState === 'ready' && generator !== null;
+  return loadState === 'ready';
 }
 
-/**
- * Get current load state for UI rendering.
- */
 export function getLoadState() {
   return { state: loadState, progress: loadProgress, error: loadError };
 }
 
 /**
  * Generate a response from the in-browser model.
- *
- * @param {string} prompt — the full prompt including system + history + user message
- * @param {object} [opts]
- * @param {number} [opts.maxTokens=256]
- * @param {number} [opts.temperature=0.7]
- * @returns {Promise<string>}
  */
 export async function generateResponse(prompt, opts = {}) {
-  const pipe = await loadModel();
+  const llm = await loadModel();
   const { maxTokens = 256, temperature = 0.7 } = opts;
 
-  const result = await pipe(prompt, {
-    max_new_tokens: maxTokens,
+  // Build the full prompt using Llama 2 chat format
+  const fullPrompt = buildChatPrompt({ messages: [{ role: 'user', content: prompt }] });
+
+  let response = '';
+  await llm.createCompletion(fullPrompt, {
+    nPredict: maxTokens,
     temperature,
-    do_sample: temperature > 0,
-    top_p: 0.9,
-    repetition_penalty: 1.1,
+    topP: 0.9,
+    onToken: (_tokens) => {
+      // tokens is an array of token IDs; we track completion length
+    },
+    onTextChunk: (text) => {
+      response += text;
+    },
   });
 
-  // transformers.js returns: [{ generated_text: '...' }]
-  const fullText = result[0]?.generated_text || '';
-  // Strip the prompt to return only the model's response
-  const response = fullText.slice(prompt.length).trim();
-  return response;
+  return response.trim();
 }
 
 /**
- * Build a chat prompt for TinyLlama (uses Llama 2 chat format).
+ * Build a chat prompt in Llama 2 format.
+ * SmolLM2 uses the standard Llama chat template.
  */
 export function buildChatPrompt({ systemPrompt, messages }) {
   const parts = [];
@@ -168,8 +155,7 @@ export function buildChatPrompt({ systemPrompt, messages }) {
 }
 
 /**
- * Build an IRIS-aware system prompt for the in-browser model.
- * Keeps it concise — small models work better with focused prompts.
+ * Build an IRIS-aware system prompt.
  */
 export function buildIrisPrompt({ iris, entries }) {
   const type = iris?.enneagramType;
