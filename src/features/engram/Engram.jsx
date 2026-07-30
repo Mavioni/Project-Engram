@@ -491,6 +491,13 @@ function GrowthTab() {
             </div>
           ))}
         </div>
+        <div style={{ marginTop: 14, textAlign: 'center' }}>
+          <a href="/psyche" style={{ textDecoration: 'none' }}>
+            <Button variant="subtle" size="sm">
+              Psyche Engine →
+            </Button>
+          </a>
+        </div>
       </Card>
     </div>
   );

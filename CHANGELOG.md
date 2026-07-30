@@ -10,6 +10,7 @@
 <!-- AUTO:log -->
 ## 2026-07-30
 
+- `fce6d86` Remove battling, add World statistics (Part 2)
 - `e72be0d` Fix typing bias that scored ~43% of users as Loyalist (#38)
 
 ## 2026-04-21
