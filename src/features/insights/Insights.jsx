@@ -28,8 +28,7 @@ import {
   selectActivityFrequency,
 } from '../../lib/store.js';
 import { last } from '../../lib/time.js';
-import { requestInsight, INSIGHT_KINDS } from '../../lib/claude.js';
-import { hasSupabase } from '../../lib/supabase.js';
+import { requestInsight } from '../../lib/claude.js';
 
 const WINDOWS = [
   { id: 7, label: '7d' },
@@ -269,22 +268,22 @@ export default function Insights() {
           label="Daily"
           emoji="1f305"
           color="#ffd166"
-          loading={generating === INSIGHT_KINDS.DAILY}
-          onClick={() => generate(INSIGHT_KINDS.DAILY)}
+          loading={generating === 'daily'}
+          onClick={() => generate('daily')}
         />
         <InsightBtn
           label="Weekly"
           emoji="1f319"
           color="#ff6b8a"
-          loading={generating === INSIGHT_KINDS.WEEKLY}
-          onClick={() => generate(INSIGHT_KINDS.WEEKLY)}
+          loading={generating === 'weekly'}
+          onClick={() => generate('weekly')}
         />
         <InsightBtn
           label="Monthly"
           emoji="1f30c"
           color="#7eb5ff"
-          loading={generating === INSIGHT_KINDS.MONTHLY}
-          onClick={() => generate(INSIGHT_KINDS.MONTHLY)}
+          loading={generating === 'monthly'}
+          onClick={() => generate('monthly')}
         />
       </div>
 
@@ -374,8 +373,7 @@ export default function Insights() {
         </>
       )}
 
-      {!hasSupabase() && (
-        <div
+      <div
           className="mono"
           style={{
             marginTop: 24,
@@ -388,10 +386,9 @@ export default function Insights() {
             letterSpacing: '0.04em',
           }}
         >
-          Claude + subscription features activate when you set Supabase env vars.
-          See <code style={{ color: '#ffd166' }}>README → AI setup</code>.
+          AI-powered insights activate when a local model is running.
+          Run <code style={{ color: '#ffd166' }}>python scripts/setup-local-ai.py</code> for on-device inference.
         </div>
-      )}
     </Screen>
   );
 }

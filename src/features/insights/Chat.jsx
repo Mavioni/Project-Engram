@@ -13,7 +13,6 @@ import Emoji from '../../components/Emoji.jsx';
 import Empty from '../../components/Empty.jsx';
 import { useStore } from '../../lib/store.js';
 import { sendChatMessage } from '../../lib/claude.js';
-import { hasSupabase } from '../../lib/supabase.js';
 import { isLocalAvailable } from '../../lib/local-ai.js';
 
 export default function Chat() {
@@ -133,13 +132,13 @@ export default function Chat() {
       {localAvailable ? (
         <Card style={{ marginBottom: 12, borderColor: 'rgba(105,219,124,0.35)' }}>
           <div style={{ fontSize: 12, color: '#69db7c', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
-            Local model connected — responses will be generated on-device.
+            Local model connected — responses generated on-device.
           </div>
         </Card>
-      ) : !hasSupabase() && (
+      ) : (
         <Card style={{ marginBottom: 12, borderColor: 'rgba(255,209,102,0.35)' }}>
           <div style={{ fontSize: 12, color: '#ffd166', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
-            Backend not configured — messages will get a local fallback response. Start a local model or configure Supabase.
+            No local model detected — run setup-local-ai.py or start a llama.cpp/Ollama server for on-device chat.
           </div>
         </Card>
       )}

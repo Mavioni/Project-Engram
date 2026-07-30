@@ -14,7 +14,6 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import Nav from './components/Nav.jsx';
 import TopBar from './components/TopBar.jsx';
-import AuthGate from './components/AuthGate.jsx';
 import Backdrop from './components/Backdrop.jsx';
 import LevelUpToast from './components/LevelUpToast.jsx';
 import Home from './features/home/Home.jsx';
@@ -103,11 +102,7 @@ export default function App() {
                 the same login ritual as pricing + chat. */}
             <Route
               path="/insights/self-mirror"
-              element={
-                <AuthGate>
-                  <SelfMirror />
-                </AuthGate>
-              }
+              element={<SelfMirror />}
             />
 
             {/* Auth */}
@@ -115,13 +110,13 @@ export default function App() {
             <Route path="/signin/2fa" element={<TwoFactorChallenge />} />
             <Route
               path="/account"
-              element={<AuthGate><Account /></AuthGate>}
+              element={<Account />}
             />
             <Route
               path="/account/2fa"
-              element={<AuthGate requireMfa={false}><TwoFactorEnroll /></AuthGate>}
+              element={<TwoFactorEnroll />}
             />
-            <Route path="/pricing" element={<AuthGate><Pricing /></AuthGate>} />
+            <Route path="/pricing" element={<Pricing />} />
 
             {/* Legacy redirects — preserve bookmarks */}
             <Route path="/home" element={<Navigate to="/" replace />} />

@@ -1,19 +1,16 @@
 // ─────────────────────────────────────────────────────────────
-// claude.js — Multi-provider AI client facade.
+// claude.js — Local-first AI client facade.
 // ─────────────────────────────────────────────────────────────
-// Priority chain: local → hosted (Supabase) → fallback.
-// The UI imports one function and gets the best available response.
+// Priority chain: local → fallback.
+// The app is fully static on GitHub Pages — no Supabase backend.
+// Chat and insights run on-device when a local LLM is available,
+// or deliver honest fallback messages when it isn't.
 //
-// To activate local mode:
-//   1. Start a local inference server (llama.cpp, Ollama, etc.)
-//   2. Set VITE_LOCAL_AI_URL in .env (default: http://localhost:8080/v1)
-//   3. The app auto-detects it on next chat message + caches for 30s
-//
-// For BitNet / 1-bit models, use llama.cpp server with IQ1_S quantisation
-// or Microsoft's bitnet.cpp with an HTTP wrapper.
+// To activate local inference:
+//   python scripts/setup-local-ai.py llama
+//   Then chat at /chat and insights at /insights route through it.
 // ─────────────────────────────────────────────────────────────
 
-import { getSupabase } from './supabase.js';
 import {
   AI_PROVIDERS,
   fallbackChatMessage,
@@ -26,19 +23,8 @@ import {
   buildIrisSystemPrompt,
 } from './local-ai.js';
 
-const HOSTED_EDGE_FUNCTION = 'claude-insight';
-
 export const MODELS = {
-  insight: 'claude-sonnet-4-6',
-  chat: 'claude-sonnet-4-6',
   local: 'local-model',
-};
-
-export const INSIGHT_KINDS = {
-  DAILY: 'daily',
-  WEEKLY: 'weekly',
-  MONTHLY: 'monthly',
-  CHAT: 'chat',
 };
 
 /**
@@ -58,18 +44,7 @@ export async function requestInsight({ kind, windowDays = 7, context = {} }) {
       });
       return normalizeAiResponse({ content }, { model: MODELS.local, provider: AI_PROVIDERS.LOCAL });
     } catch (e) {
-      console.warn('Local AI insight failed, falling back:', e.message);
-    }
-  }
-
-  // Try hosted
-  const supabase = getSupabase();
-  if (supabase) {
-    const { data, error } = await supabase.functions.invoke(HOSTED_EDGE_FUNCTION, {
-      body: { kind, windowDays, context },
-    });
-    if (!error) {
-      return normalizeAiResponse(data, { model: MODELS.insight, provider: AI_PROVIDERS.HOSTED });
+      console.warn('Local AI insight failed:', e.message);
     }
   }
 
@@ -84,7 +59,7 @@ export async function requestInsight({ kind, windowDays = 7, context = {} }) {
 /**
  * Chat with your IRIS through the best available provider.
  */
-export async function sendChatMessage({ threadId, history, message, irisContext }) {
+export async function sendChatMessage({ history, message, irisContext }) {
   // Try local first
   const localOk = await isLocalAvailable();
   if (localOk) {
@@ -99,18 +74,7 @@ export async function sendChatMessage({ threadId, history, message, irisContext 
       });
       return normalizeAiResponse({ content }, { model: MODELS.local, provider: AI_PROVIDERS.LOCAL });
     } catch (e) {
-      console.warn('Local AI chat failed, falling back:', e.message);
-    }
-  }
-
-  // Try hosted
-  const supabase = getSupabase();
-  if (supabase) {
-    const { data, error } = await supabase.functions.invoke(HOSTED_EDGE_FUNCTION, {
-      body: { kind: INSIGHT_KINDS.CHAT, threadId, history, message, irisContext },
-    });
-    if (!error) {
-      return normalizeAiResponse(data, { model: MODELS.chat, provider: AI_PROVIDERS.HOSTED });
+      console.warn('Local AI chat failed:', e.message);
     }
   }
 

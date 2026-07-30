@@ -10,11 +10,10 @@
 <!-- AUTO:log -->
 ## 2026-07-30
 
-- `6c6ce6a` Local AI backend — BitNet-compatible on-device inference
-- `1f6b659` Psyche Engine — layered profiling surface (Part 3)
-- `fce6d86` Remove battling, add World statistics (Part 2)
-- `1f6b659` Psyche Engine — layered profiling surface (Part 3)
-- `fce6d86` Remove battling, add World statistics (Part 2)
+- `30841a7` Local AI backend — BitNet-compatible on-device inference
+- `1adef57` Psyche Engine — layered profiling surface (Part 3)
+- `573fd08` Remove battling, add World statistics (Part 2)
+- `129d3aa` Remove battling, add World statistics (Part 2) (#39)
 - `e72be0d` Fix typing bias that scored ~43% of users as Loyalist (#38)
 
 ## 2026-04-21
