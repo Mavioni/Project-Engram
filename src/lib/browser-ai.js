@@ -11,22 +11,17 @@
 // models via ort-web (WASM backend). This is the same stack
 // behind the HuggingFace web demo pages — battle-tested.
 //
-// MODEL: SmolLM2-135M-Instruct (onnx-community quantized)
-//   Size: ~80 MB (INT8 quantized ONNX, split into shards)
-//   Quality: surprisingly good for its size — about GPT-2 level
-//   Speed:  ~15-30 tokens/sec on a modern laptop CPU (WASM)
-//           ~40-60 tokens/sec with WebGPU (where supported)
+// MODEL: Xenova/TinyLlama-1.1B-Chat-v1.0 (transformers.js compatible)
+//   Size: ~400 MB (ONNX, split into shards, cached in IndexedDB)
+//   Quality: Decent chat — Llama-architecture, instruction-tuned
+//   Speed:  ~10-20 tokens/sec on WASM, ~30-50 with WebGPU
 //
-// UPGRADE PATH: swap MODEL_ID for a larger model as bandwidth
-// and WebGPU support improve. The interface stays the same.
-// ─────────────────────────────────────────────────────────────
-
+// TINIER OPTION: 'Xenova/gpt2' (~250MB, much dumber but instant)
 import { pipeline } from '@huggingface/transformers';
 
 // ── Model config ────────────────────────────────────────────
-// Tiny but capable. If you've got WebGPU + bandwidth, swap to:
-//   'onnx-community/Llama-3.2-1B-Instruct' (~500MB, much smarter)
-const MODEL_ID = 'onnx-community/SmolLM2-135M-Instruct';
+// Swap MODEL_ID to change models. Same interface throughout.
+const MODEL_ID = 'Xenova/TinyLlama-1.1B-Chat-v1.0';
 
 // ── Pipeline singleton ──────────────────────────────────────
 let generator = null;
@@ -153,22 +148,21 @@ export async function generateResponse(prompt, opts = {}) {
 }
 
 /**
- * Build a chat prompt for SmolLM2 (uses ChatML format).
- * SmolLM2 was trained with ChatML: <|im_start|>role\nmessage<|im_end|>
+ * Build a chat prompt for TinyLlama (uses Llama 2 chat format).
  */
 export function buildChatPrompt({ systemPrompt, messages }) {
   const parts = [];
 
   if (systemPrompt) {
-    parts.push(`<|im_start|>system\n${systemPrompt}<|im_end|>`);
+    parts.push(`<|system|>\n${systemPrompt}</s>`);
   }
 
   for (const msg of messages || []) {
     const role = msg.role === 'user' ? 'user' : 'assistant';
-    parts.push(`<|im_start|>${role}\n${msg.content}<|im_end|>`);
+    parts.push(`<|${role}|>\n${msg.content}</s>`);
   }
 
-  parts.push('<|im_start|>assistant\n');
+  parts.push('<|assistant|>\n');
   return parts.join('\n');
 }
 

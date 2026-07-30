@@ -10,6 +10,7 @@
 <!-- AUTO:log -->
 ## 2026-07-30
 
+- `84d4ce3` In-browser AI — transformers.js model runs fully on-device
 - `21b6b7b` Switch default local AI port to 11434 (Ollama)
 - `f9edf6f` Fix CORS: skip local AI health check on non-localhost origins
 - `8e8648b` Remove Supabase — fully static GitHub Pages, local-first
