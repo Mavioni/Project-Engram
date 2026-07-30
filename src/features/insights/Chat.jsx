@@ -1,7 +1,9 @@
 // ─────────────────────────────────────────────────────────────
-// Chat — "Chat with your IRIS". A focused thread view that calls
-// the Supabase `claude-insight` edge function with the user's
-// IRIS context attached to every message.
+// Chat — \"Chat with your IRIS\" via in-browser AI.
+// ─────────────────────────────────────────────────────────────
+// The model loads directly in your browser via transformers.js.
+// No server. No API key. First load downloads ~80 MB of model
+// weights from HuggingFace CDN; subsequent loads use cache.
 // ─────────────────────────────────────────────────────────────
 
 import { useEffect, useRef, useState } from 'react';
@@ -13,7 +15,7 @@ import Emoji from '../../components/Emoji.jsx';
 import Empty from '../../components/Empty.jsx';
 import { useStore } from '../../lib/store.js';
 import { sendChatMessage } from '../../lib/claude.js';
-import { isLocalAvailable } from '../../lib/local-ai.js';
+import { isModelReady, getLoadState, onLoadChange } from '../../lib/browser-ai.js';
 
 export default function Chat() {
   const navigate = useNavigate();
@@ -25,7 +27,7 @@ export default function Chat() {
   const [activeId, setActiveId] = useState(threads[0]?.id || null);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [localAvailable, setLocalAvailable] = useState(false);
+  const [modelState, setModelState] = useState(getLoadState());
   const endRef = useRef(null);
 
   const active = threads.find((t) => t.id === activeId);
@@ -34,11 +36,9 @@ export default function Chat() {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [active?.messages.length]);
 
-  // Check for local AI availability
+  // Subscribe to model load progress — use lazy init to avoid sync setState
   useEffect(() => {
-    isLocalAvailable().then(setLocalAvailable);
-    const interval = setInterval(() => isLocalAvailable().then(setLocalAvailable), 30000);
-    return () => clearInterval(interval);
+    return onLoadChange(setModelState);
   }, []);
 
   const startNew = () => {
@@ -76,7 +76,7 @@ export default function Chat() {
     } catch (e) {
       appendChatMessage(threadId, {
         role: 'assistant',
-        content: `Something went wrong: ${e.message || e}. Try again in a moment.`,
+        content: `Something went wrong: ${e.message || e}. Try again.`,
         error: true,
       });
     } finally {
@@ -86,59 +86,51 @@ export default function Chat() {
 
   if (!iris?.enneagramType) {
     return (
-      <Screen
-        label="Chat"
-        title="Chat with your IRIS"
-        action={
-          <button
-            onClick={() => navigate(-1)}
-            className="mono"
-            style={{
-              fontSize: 10,
-              letterSpacing: '0.22em',
-              color: 'var(--ink-dim)',
-              textTransform: 'uppercase',
-            }}
-          >
-            Back
-          </button>
-        }
-      >
+      <Screen label="Chat" title="Chat with your IRIS">
         <Empty
           emoji="1f441"
           title="Run IRIS first"
           body="Chat needs your 24 facet scores to write in your voice. The simulation is 16 questions, ~4 minutes."
-          action={
-            <Button variant="solid" tone="#b197fc" onClick={() => navigate('/iris')}>
-              Begin IRIS
-            </Button>
-          }
+          action={<Button variant="solid" tone="#b197fc" onClick={() => navigate('/iris')}>Begin IRIS</Button>}
         />
       </Screen>
     );
   }
 
+  const modelReady = isModelReady();
+  const modelLoading = modelState.state === 'loading';
+
   return (
     <Screen
       label={`IRIS Type ${iris.enneagramType}`}
       title="Chat"
-      subtitle="Grounded in your 24 facets"
-      action={
-        <Button variant="subtle" size="sm" onClick={startNew}>
-          + New
-        </Button>
-      }
+      subtitle="In-browser AI — no server, no API key"
+      action={<Button variant="subtle" size="sm" onClick={startNew}>+ New</Button>}
     >
-      {localAvailable ? (
-        <Card style={{ marginBottom: 12, borderColor: 'rgba(105,219,124,0.35)' }}>
-          <div style={{ fontSize: 12, color: '#69db7c', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
-            Local model connected — responses generated on-device.
+      {/* Model status banner */}
+      {modelLoading && (
+        <Card style={{ marginBottom: 12, borderColor: 'rgba(126,181,255,0.35)' }}>
+          <div style={{ fontSize: 12, color: '#7eb5ff', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
+            Loading model… {modelState.progress > 0 ? `${modelState.progress}%` : 'connecting'}
+          </div>
+          {modelState.progress > 0 && (
+            <div style={{ height: 3, background: 'var(--border)', borderRadius: 2, overflow: 'hidden', marginTop: 6 }}>
+              <div style={{ width: `${modelState.progress}%`, height: '100%', background: '#7eb5ff', transition: 'width 300ms ease' }} />
+            </div>
+          )}
+        </Card>
+      )}
+      {modelState.state === 'error' && (
+        <Card style={{ marginBottom: 12, borderColor: 'rgba(255,107,107,0.35)' }}>
+          <div style={{ fontSize: 12, color: '#ff6b6b', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
+            Model failed to load. Your browser may not support WebGPU/WASM, or you&apos;re offline on first visit.
           </div>
         </Card>
-      ) : (
-        <Card style={{ marginBottom: 12, borderColor: 'rgba(255,209,102,0.35)' }}>
-          <div style={{ fontSize: 12, color: '#ffd166', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
-            No local model detected — run setup-local-ai.py or start a llama.cpp/Ollama server for on-device chat.
+      )}
+      {modelReady && (
+        <Card style={{ marginBottom: 12, borderColor: 'rgba(105,219,124,0.35)' }}>
+          <div style={{ fontSize: 12, color: '#69db7c', fontFamily: 'var(--mono)', letterSpacing: '0.04em' }}>
+            Model ready — SmolLM2-135M running in your browser. Responses generated on-device.
           </div>
         </Card>
       )}
@@ -149,16 +141,7 @@ export default function Chat() {
             <MessageBubble key={m.id} role={m.role} content={m.content} error={m.error} />
           ))}
           {sending && (
-            <div
-              className="mono"
-              style={{
-                fontSize: 10,
-                letterSpacing: '0.2em',
-                color: 'var(--ink-dim)',
-                textTransform: 'uppercase',
-                padding: '8px 14px',
-              }}
-            >
+            <div className="mono" style={{ fontSize: 10, letterSpacing: '0.2em', color: 'var(--ink-dim)', textTransform: 'uppercase', padding: '8px 14px' }}>
               IRIS is writing…
             </div>
           )}
@@ -170,30 +153,12 @@ export default function Chat() {
           <p style={{ margin: '16px 0 0', fontStyle: 'italic' }}>
             Ask anything. Your IRIS is listening.
           </p>
-          <div
-            style={{
-              marginTop: 20,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-              alignItems: 'center',
-            }}
-          >
+          <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
             {SEED_PROMPTS.map((p) => (
-              <button
-                key={p}
-                onClick={() => setInput(p)}
-                style={{
-                  padding: '10px 16px',
-                  borderRadius: 999,
-                  border: '1px solid var(--border)',
-                  background: 'transparent',
-                  color: 'var(--ink-soft)',
-                  fontSize: 13,
-                  cursor: 'pointer',
-                  fontStyle: 'italic',
-                }}
-              >
+              <button key={p} onClick={() => setInput(p)} style={{
+                padding: '10px 16px', borderRadius: 999, border: '1px solid var(--border)',
+                background: 'transparent', color: 'var(--ink-soft)', fontSize: 13, cursor: 'pointer', fontStyle: 'italic',
+              }}>
                 {p}
               </button>
             ))}
@@ -202,49 +167,16 @@ export default function Chat() {
       )}
 
       {/* Composer */}
-      <div
-        style={{
-          position: 'sticky',
-          bottom: 0,
-          display: 'flex',
-          gap: 8,
-          alignItems: 'flex-end',
-          padding: '12px 0',
-          background: 'linear-gradient(180deg, transparent, var(--bg) 40%)',
-        }}
-      >
+      <div style={{ position: 'sticky', bottom: 0, display: 'flex', gap: 8, alignItems: 'flex-end', padding: '12px 0', background: 'linear-gradient(180deg, transparent, var(--bg) 40%)' }}>
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
           placeholder="What is asking to be named?"
           rows={1}
-          style={{
-            flex: 1,
-            resize: 'none',
-            padding: 14,
-            minHeight: 48,
-            maxHeight: 160,
-            borderRadius: 14,
-            border: '1px solid var(--border)',
-            background: 'var(--bg-raised)',
-            color: 'var(--ink)',
-            fontFamily: 'var(--serif)',
-            fontSize: 16,
-            lineHeight: 1.5,
-          }}
+          style={{ flex: 1, resize: 'none', padding: 14, minHeight: 48, maxHeight: 160, borderRadius: 14, border: '1px solid var(--border)', background: 'var(--bg-raised)', color: 'var(--ink)', fontFamily: 'var(--serif)', fontSize: 16, lineHeight: 1.5 }}
         />
-        <Button
-          variant="solid"
-          tone="#b197fc"
-          onClick={send}
-          disabled={sending || !input.trim()}
-        >
+        <Button variant="solid" tone="#b197fc" onClick={send} disabled={sending || !input.trim()}>
           Send
         </Button>
       </div>
@@ -255,23 +187,14 @@ export default function Chat() {
 function MessageBubble({ role, content, error }) {
   const isUser = role === 'user';
   return (
-    <div
-      style={{
-        alignSelf: isUser ? 'flex-end' : 'flex-start',
-        maxWidth: '88%',
-        padding: '12px 16px',
-        borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-        background: isUser
-          ? 'linear-gradient(180deg, rgba(255,209,102,0.15), rgba(255,209,102,0.05))'
-          : 'var(--bg-raised)',
-        border: isUser ? '1px solid rgba(255,209,102,0.28)' : '1px solid var(--border)',
-        color: error ? '#ff6b6b' : 'var(--ink)',
-        fontSize: 15,
-        lineHeight: 1.65,
-        fontFamily: 'var(--serif)',
-        whiteSpace: 'pre-wrap',
-      }}
-    >
+    <div style={{
+      alignSelf: isUser ? 'flex-end' : 'flex-start', maxWidth: '88%', padding: '12px 16px',
+      borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+      background: isUser ? 'linear-gradient(180deg, rgba(255,209,102,0.15), rgba(255,209,102,0.05))' : 'var(--bg-raised)',
+      border: isUser ? '1px solid rgba(255,209,102,0.28)' : '1px solid var(--border)',
+      color: error ? '#ff6b6b' : 'var(--ink)', fontSize: 15, lineHeight: 1.65,
+      fontFamily: 'var(--serif)', whiteSpace: 'pre-wrap',
+    }}>
       {content}
     </div>
   );
