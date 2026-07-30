@@ -72,6 +72,7 @@ Combat logic is deterministic (seeded PRNG) and pure — see `src/features/engra
 
 | Path | What it is |
 |---|---|
+| `/psyche` | /psyche |
 | `/settings` | Settings + theme toggle |
 | `/iris` | IRIS v4 assessment |
 | `/checkin` | Daily check-in flow |
@@ -114,6 +115,7 @@ Combat logic is deterministic (seeded PRNG) and pure — see `src/features/engra
 | `src/features/iris/` | IRIS v4 — 24-facet assessment + Coliseum + Player Card export |
 | `src/features/journal/` | Journal timeline + Check-In flow |
 | `src/features/profile/` | Legacy You page (redirects to Settings) |
+| `src/features/psyche/` | psyche |
 | `src/features/rituals/` | Rituals library + guided player with ambient audio |
 | `src/features/self-mirror/` | self-mirror |
 | `src/features/settings/` | Theme toggle, account, plan, reset |
@@ -144,8 +146,8 @@ Combat logic is deterministic (seeded PRNG) and pure — see `src/features/engra
 |---|---|
 | Version | `0.1.0` |
 | Node | `>=20` |
-| Test files | 15 |
-| Test cases | 199 |
+| Test files | 14 |
+| Test cases | 178 |
 | Last doc sync | 2026-07-30 |
 <!-- /AUTO:stats -->
 

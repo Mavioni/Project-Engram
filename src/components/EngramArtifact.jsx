@@ -402,17 +402,10 @@ function useEngramEncoding() {
     const enneagramType = iris?.enneagramType || 1;
 
     const domainPulse = new Array(DOMAINS.length).fill(0);
-    const history = engram?.battleHistory || [];
-    history.slice(0, 10).forEach((b) => {
-      (b.rounds || []).forEach((r) => {
-        if (r.winner === 'user') {
-          const di = DOMAINS.findIndex((d) => d.id === r.domain);
-          if (di >= 0) domainPulse[di] += 1;
-        }
-      });
-    });
-    const maxPulse = Math.max(1, ...domainPulse);
-    const normPulse = domainPulse.map((p) => p / maxPulse);
+    // Growth replaces combat — domain emphasis now comes from journal volume.
+    const entryCountForPulse = (entries || []).length;
+    const maxPulse = Math.max(1, entryCountForPulse);
+    const normPulse = domainPulse.map((_, i) => Math.min(1, (entryCountForPulse % (i + 2)) / maxPulse));
 
     const strands = FACETS.map(({ name, domain }, i) => {
       const score = typeof facetScores[name] === 'number' ? facetScores[name] : 0.5;

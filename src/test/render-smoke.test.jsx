@@ -34,10 +34,7 @@ const seed = (patch = {}) => {
     engram: {
       xp: 0,
       level: 1,
-      defeated: [],
-      battleHistory: [],
       pendingLevelUp: null,
-      dailyChallenge: null,
     },
     rituals: { last30: [] },
     settings: { ambientAudio: true },

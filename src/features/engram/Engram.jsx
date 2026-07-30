@@ -1,14 +1,12 @@
 // ─────────────────────────────────────────────────────────────
-// Engram — your replica. Stats, arena, rewards.
+// Engram — your evolving personality replica.
 // ─────────────────────────────────────────────────────────────
-// The user's evolving personality replica lives here. Three
-// sub-sections, picked via a simple tab row:
-//   • Stats   — level, XP, domain attributes, defeated seals
-//   • Arena   — battle the 9 archetypes; see rounds play out
-//   • History — recent battle results
+// Three tabs:
+//   • Stats   — level, XP, domain attributes
+//   • World   — global archetype distribution, rarity, sectors
+//   • Growth  — journal history, ritual streak, reflection
 //
-// Battle logic is pure and lives in ./combat.js. This component
-// only orchestrates state + renders the outcomes.
+// Combat is gone. Growth stays.
 // ─────────────────────────────────────────────────────────────
 
 import { useMemo, useState } from 'react';
@@ -19,24 +17,22 @@ import Button from '../../components/Button.jsx';
 import Empty from '../../components/Empty.jsx';
 import { Sigil } from '../../components/SacredGeometry.jsx';
 import { useStore } from '../../lib/store.js';
-import { DOMAINS, TYPES, getType, getDomainAvg } from '../../data/enneagram.js';
-import { runBattle, seedFrom } from './combat.js';
+import { DOMAINS, TYPES, getType, getDomainAvg, getPercentile } from '../../data/enneagram.js';
 import { levelFromXp, xpToNext, levelProgress } from './rewards.js';
+import { selectRitualStats, selectTotalNoteCount } from '../../lib/store.js';
 
 const TABS = [
   { id: 'stats', label: 'Stats' },
-  { id: 'arena', label: 'Arena' },
-  { id: 'history', label: 'History' },
+  { id: 'world', label: 'World' },
+  { id: 'growth', label: 'Growth' },
 ];
 
 export default function Engram() {
   const navigate = useNavigate();
   const iris = useStore((s) => s.iris);
   const engram = useStore((s) => s.engram);
-  const recordBattle = useStore((s) => s.recordBattle);
 
   const [tab, setTab] = useState('stats');
-  const [battle, setBattle] = useState(null); // the latest battle result, if we just fought one
 
   const facetScores = iris?.facetScores;
   const userType = iris?.enneagramType;
@@ -46,7 +42,6 @@ export default function Engram() {
   const level = levelFromXp(engram.xp);
   const progress = levelProgress(engram.xp);
   const toNext = xpToNext(engram.xp);
-  const defeated = new Set(engram.defeated || []);
 
   const domainStats = useMemo(() => {
     if (!facetScores) return null;
@@ -63,7 +58,7 @@ export default function Engram() {
         <Empty
           emoji="1f3ad"
           title="No replica yet"
-          body="Your Engram is built from your IRIS profile. Run the 16-scenario simulation and your replica comes to life — ready to enter the arena."
+          body="Your Engram is built from your IRIS profile. Run the 16-scenario assessment and your replica comes to life — stats, world context, and growth tracking unlock here."
           action={
             <Button variant="solid" tone="var(--accent)" onClick={() => navigate('/iris')}>
               Begin IRIS
@@ -73,15 +68,6 @@ export default function Engram() {
       </Screen>
     );
   }
-
-  const handleBattle = (archetype) => {
-    // Defensive: older persisted schemas can lack battleHistory.
-    const history = engram?.battleHistory || [];
-    const seed = seedFrom(`${history.length}:${archetype}:${Date.now()}`);
-    const result = runBattle({ userFacetScores: facetScores, archetype, seed });
-    recordBattle(result);
-    setBattle(result);
-  };
 
   return (
     <Screen label="Your replica" title="Engram" subtitle="Your evolving personality replica">
@@ -180,30 +166,22 @@ export default function Engram() {
           typeMeta={userTypeMeta}
           userType={userType}
           domainStats={domainStats}
-          defeated={defeated}
         />
       )}
 
-      {tab === 'arena' && (
-        <ArenaTab
-          userType={userType}
-          userTypeMeta={userTypeMeta}
-          defeated={defeated}
-          onBattle={handleBattle}
-          latestBattle={battle}
-          onClear={() => setBattle(null)}
-        />
+      {tab === 'world' && (
+        <WorldTab userType={userType} typeMeta={userTypeMeta} />
       )}
 
-      {tab === 'history' && <HistoryTab history={engram.battleHistory || []} />}
+      {tab === 'growth' && <GrowthTab />}
     </Screen>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// Stats tab
+// Stats tab — domain attributes
 // ─────────────────────────────────────────────────────────────
-function StatsTab({ typeMeta, userType, domainStats, defeated }) {
+function StatsTab({ typeMeta, domainStats }) {
   return (
     <div>
       <Card style={{ marginBottom: 14 }}>
@@ -245,389 +223,290 @@ function StatsTab({ typeMeta, userType, domainStats, defeated }) {
           ))}
         </div>
       </Card>
-
-      <Card accent={typeMeta.color}>
-        <SectionTitle color={typeMeta.color}>Archetypes defeated</SectionTitle>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 8,
-          }}
-        >
-          {Object.entries(TYPES).map(([num, t]) => {
-            const n = parseInt(num, 10);
-            const won = defeated.has(n);
-            const isYou = n === userType;
-            return (
-              <div
-                key={num}
-                style={{
-                  padding: '10px 6px',
-                  borderRadius: 8,
-                  textAlign: 'center',
-                  background: won ? `${t.color}10` : 'var(--bg-raised)',
-                  border: `1px solid ${won ? `${t.color}55` : 'var(--border)'}`,
-                  opacity: won ? 1 : 0.55,
-                }}
-              >
-                <div style={{ fontSize: 22, color: t.color, lineHeight: 1 }}>{t.glyph}</div>
-                <div
-                  className="mono"
-                  style={{
-                    fontSize: 8,
-                    letterSpacing: '0.18em',
-                    color: 'var(--ink-dim)',
-                    textTransform: 'uppercase',
-                    marginTop: 4,
-                  }}
-                >
-                  #{num}
-                  {isYou ? ' · you' : ''}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div
-          className="mono"
-          style={{
-            marginTop: 12,
-            fontSize: 9,
-            letterSpacing: '0.04em',
-            color: 'var(--ink-dim)',
-            textAlign: 'center',
-          }}
-        >
-          {defeated.size} / 9 seals claimed
-        </div>
-      </Card>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// Arena tab
+// World tab — global distribution, rarity, societal standing
 // ─────────────────────────────────────────────────────────────
-function ArenaTab({ userType, userTypeMeta, defeated, onBattle, latestBattle, onClear }) {
-  if (latestBattle) {
-    return <BattleResult result={latestBattle} userTypeMeta={userTypeMeta} onClear={onClear} />;
-  }
+function WorldTab({ userType, typeMeta }) {
+  const sorted = useMemo(() => {
+    return Object.entries(TYPES)
+      .map(([num, t]) => ({ type: parseInt(num, 10), ...t }))
+      .sort((a, b) => b.pop - a.pop);
+  }, []);
+
+  const userPercentile = getPercentile(userType);
+  const userPop = typeMeta.pop;
+
+  // Sector labels
+  const SECTORS = [
+    { id: 'leadership', label: 'Leadership' },
+    { id: 'creative', label: 'Creative' },
+    { id: 'technical', label: 'Technical' },
+    { id: 'service', label: 'Service' },
+    { id: 'entrepreneurial', label: 'Entrepreneurial' },
+  ];
+
   return (
     <div>
-      <Card style={{ marginBottom: 14 }}>
-        <SectionTitle color={userTypeMeta.color}>Choose an opponent</SectionTitle>
-        <p
-          style={{
-            fontSize: 13,
-            color: 'var(--ink-soft)',
-            fontStyle: 'italic',
-            margin: '0 0 14px',
-            lineHeight: 1.6,
-          }}
-        >
-          Battle the nine archetypes. Best of 5 rounds — each round pits a random
-          domain against theirs. Win to claim their seal and earn 100 XP.
+      {/* Population distribution chart */}
+      <Card style={{ marginBottom: 14 }} accent={typeMeta.color}>
+        <SectionTitle color={typeMeta.color}>Global distribution</SectionTitle>
+        <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 14px', lineHeight: 1.6 }}>
+          How common each archetype is in the general population.
+          <span style={{ color: 'var(--ink-faint)' }}> Source: Enneagram Institute / RHETI studies.</span>
         </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {Object.entries(TYPES).map(([num, t]) => {
-            const n = parseInt(num, 10);
-            const isYou = n === userType;
-            const claimed = defeated.has(n);
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {sorted.map((t) => {
+            const isYou = t.type === userType;
             return (
-              <button
-                key={num}
-                onClick={() => !isYou && onBattle(n)}
-                disabled={isYou}
+              <div
+                key={t.type}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 12,
-                  padding: '12px 14px',
-                  borderRadius: 10,
-                  textAlign: 'left',
-                  background: isYou ? 'transparent' : 'var(--bg-raised)',
-                  border: `1px solid ${isYou ? 'var(--border)' : `${t.color}33`}`,
-                  cursor: isYou ? 'default' : 'pointer',
-                  opacity: isYou ? 0.4 : 1,
-                  transition: 'all 220ms ease',
+                  gap: 8,
+                  padding: '6px 8px',
+                  borderRadius: 6,
+                  background: isYou ? `${t.color}14` : 'transparent',
+                  border: isYou ? `1px solid ${t.color}40` : '1px solid transparent',
                 }}
               >
-                <div style={{ fontSize: 22, color: t.color, width: 28, textAlign: 'center' }}>
+                <span style={{ fontSize: 15, color: t.color, width: 22, textAlign: 'center', flexShrink: 0 }}>
                   {t.glyph}
-                </div>
+                </span>
+                <span
+                  className="mono"
+                  style={{
+                    width: 24,
+                    fontSize: 9,
+                    color: 'var(--ink-dim)',
+                    flexShrink: 0,
+                  }}
+                >
+                  #{t.type}
+                </span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 15, color: 'var(--ink)', fontWeight: 400 }}>
-                    {t.name}
-                    {isYou && (
-                      <span
-                        className="mono"
-                        style={{
-                          marginLeft: 8,
-                          fontSize: 8,
-                          letterSpacing: '0.2em',
-                          color: t.color,
-                        }}
-                      >
-                        YOU
-                      </span>
-                    )}
-                    {claimed && (
-                      <span
-                        className="mono"
-                        style={{
-                          marginLeft: 8,
-                          fontSize: 8,
-                          letterSpacing: '0.2em',
-                          color: 'var(--good)',
-                        }}
-                      >
-                        SEALED
-                      </span>
-                    )}
-                  </div>
                   <div
-                    className="mono"
-                    style={{ fontSize: 9, color: 'var(--ink-dim)', marginTop: 2 }}
+                    style={{
+                      height: 8,
+                      background: 'var(--border)',
+                      borderRadius: 4,
+                      overflow: 'hidden',
+                    }}
                   >
-                    Type {num} · {t.tagline}
+                    <div
+                      style={{
+                        width: `${t.pop}%`,
+                        height: '100%',
+                        background: isYou ? t.color : `${t.color}88`,
+                        borderRadius: 4,
+                        transition: 'width 800ms ease',
+                      }}
+                    />
                   </div>
                 </div>
-                {!isYou && (
-                  <div
+                <span
+                  className="mono"
+                  style={{
+                    width: 32,
+                    fontSize: 10,
+                    color: isYou ? t.color : 'var(--ink-dim)',
+                    textAlign: 'right',
+                    fontWeight: isYou ? 600 : 400,
+                    flexShrink: 0,
+                  }}
+                >
+                  {t.pop}%
+                </span>
+                {isYou && (
+                  <span
                     className="mono"
                     style={{
-                      fontSize: 9,
+                      fontSize: 7,
                       letterSpacing: '0.22em',
                       color: t.color,
                       textTransform: 'uppercase',
+                      flexShrink: 0,
                     }}
                   >
-                    Fight →
-                  </div>
+                    YOU
+                  </span>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>
+      </Card>
+
+      {/* Rarity + percentile card */}
+      <Card style={{ marginBottom: 14 }} accent={typeMeta.color}>
+        <SectionTitle color={typeMeta.color}>Your standing</SectionTitle>
+        <div style={{ display: 'flex', gap: 24, justifyContent: 'center', marginBottom: 16 }}>
+          <StatBadge label="Percentile" value={`${userPercentile}th`} color={typeMeta.color} />
+          <StatBadge label="Population" value={`${userPop}%`} color={typeMeta.color} />
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--ink-soft)', textAlign: 'center', margin: 0, lineHeight: 1.6 }}>
+          Type {userType} is {userPop}% of the population — you are{' '}
+          <strong style={{ color: typeMeta.color }}>rarer than {userPercentile}% of people</strong>.
+        </p>
+      </Card>
+
+      {/* Societal sectors */}
+      <Card accent={typeMeta.color}>
+        <SectionTitle color={typeMeta.color}>Societal concentration</SectionTitle>
+        <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 14px', lineHeight: 1.6 }}>
+          Where your archetype concentrates across five sectors.
+        </p>
+        {SECTORS.map((sec) => {
+          const pct = typeMeta.society[sec.id] || 0;
+          return (
+            <div key={sec.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+              <span
+                className="mono"
+                style={{
+                  width: 110,
+                  fontSize: 9,
+                  color: 'var(--ink-dim)',
+                  textAlign: 'right',
+                  flexShrink: 0,
+                }}
+              >
+                {sec.label}
+              </span>
+              <div
+                style={{
+                  flex: 1,
+                  height: 5,
+                  background: 'var(--border)',
+                  borderRadius: 3,
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${pct}%`,
+                    height: '100%',
+                    background: typeMeta.color,
+                    borderRadius: 3,
+                    transition: 'width 1s ease',
+                  }}
+                />
+              </div>
+              <span
+                className="mono"
+                style={{
+                  width: 30,
+                  fontSize: 9,
+                  color: typeMeta.color,
+                  textAlign: 'right',
+                  fontWeight: 600,
+                  flexShrink: 0,
+                }}
+              >
+                {pct}%
+              </span>
+            </div>
+          );
+        })}
       </Card>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// Battle result
+// Growth tab — journal, ritual, reflection
 // ─────────────────────────────────────────────────────────────
-function BattleResult({ result, userTypeMeta, onClear }) {
-  const opp = getType(result.archetype);
-  const { won, userWins, oppWins, rounds } = result;
-  const tone = won ? userTypeMeta.color : opp.color;
+function GrowthTab() {
+  const entries = useStore((s) => s.entries);
+  const rituals = useStore((s) => s.rituals);
+  const ritualStats = useMemo(() => selectRitualStats({ rituals }), [rituals]);
+  const totalNotes = useStore(selectTotalNoteCount);
+  const iris = useStore((s) => s.iris);
+  const irisRuns = (iris.history || []).length + (iris.takenAt ? 1 : 0);
 
   return (
     <div>
-      <Card style={{ marginBottom: 14, textAlign: 'center' }} accent={tone}>
+      <Card style={{ marginBottom: 14 }}>
+        <SectionTitle color="var(--ink-dim)">Reflection activity</SectionTitle>
         <div
-          className="mono"
           style={{
-            fontSize: 9,
-            letterSpacing: '0.3em',
-            color: won ? 'var(--good)' : 'var(--bad)',
-            textTransform: 'uppercase',
-            marginBottom: 6,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: 8,
           }}
         >
-          {won ? 'Victory' : 'Defeat'}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
-          <div style={{ textAlign: 'center' }}>
-            <Sigil size={72} color={userTypeMeta.color} opacity={0.5} spin={160}>
-              <div style={{ fontSize: 26, color: userTypeMeta.color, fontFamily: 'var(--serif)' }}>
-                You
-              </div>
-            </Sigil>
-            <div
-              style={{
-                fontSize: 28,
-                color: userTypeMeta.color,
-                fontWeight: 300,
-                marginTop: 8,
-              }}
-            >
-              {userWins}
-            </div>
-          </div>
-          <div
-            style={{
-              fontSize: 32,
-              color: 'var(--ink-dim)',
-              fontFamily: 'var(--serif)',
-              fontWeight: 300,
-            }}
-          >
-            ⸻
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <Sigil size={72} color={opp.color} opacity={0.5} spin={-160}>
-              <div style={{ fontSize: 22, color: opp.color, fontFamily: 'var(--serif)' }}>
-                {opp.glyph}
-              </div>
-            </Sigil>
-            <div style={{ fontSize: 28, color: opp.color, fontWeight: 300, marginTop: 8 }}>
-              {oppWins}
-            </div>
-          </div>
-        </div>
-        <h3
-          style={{
-            fontSize: 18,
-            fontWeight: 400,
-            color: 'var(--ink)',
-            margin: '14px 0 4px',
-            letterSpacing: '0.04em',
-          }}
-        >
-          vs {opp.name}
-        </h3>
-        <div
-          className="mono"
-          style={{ fontSize: 10, color: 'var(--ink-dim)', letterSpacing: '0.08em' }}
-        >
-          {won ? '+100 XP · seal claimed' : '+25 XP · try again'}
+          <StatCard
+            label="Journal entries"
+            value={entries.length}
+            subtitle={`${totalNotes} notes written`}
+          />
+          <StatCard
+            label="Day streak"
+            value={ritualStats.streak}
+            subtitle={`${ritualStats.total} rituals completed`}
+          />
+          <StatCard
+            label="IRIS runs"
+            value={irisRuns}
+            subtitle="personality snapshots"
+          />
+          <StatCard
+            label="Unique days"
+            value={ritualStats.uniqueDays}
+            subtitle="days with at least one ritual"
+          />
         </div>
       </Card>
 
       <Card>
-        <SectionTitle color={tone}>Round breakdown</SectionTitle>
-        {rounds.map((r, i) => (
-          <div
-            key={i}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 0',
-              borderBottom: i < rounds.length - 1 ? '1px solid var(--border)' : 'none',
-            }}
-          >
+        <SectionTitle color="var(--ink-dim)">XP sources</SectionTitle>
+        <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '0 0 10px', lineHeight: 1.6 }}>
+          XP is earned through reflection — not combat. Each action that deepens your
+          self-knowledge contributes to your replica&apos;s growth.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {[
+            { label: 'Daily check-in', xp: 10 },
+            { label: 'Streak day bonus', xp: 5 },
+            { label: 'IRIS assessment', xp: 50 },
+            { label: 'Journal note', xp: 25 },
+            { label: 'Ritual completion', xp: '15–40' },
+          ].map((r) => (
             <div
-              className="mono"
+              key={r.label}
               style={{
-                width: 20,
-                fontSize: 10,
-                color: 'var(--ink-dim)',
-                flexShrink: 0,
+                display: 'flex',
+                justifyContent: 'space-between',
+                padding: '6px 0',
+                borderBottom: '1px solid var(--border)',
               }}
             >
-              {i + 1}
+              <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>{r.label}</span>
+              <span className="mono" style={{ fontSize: 10, color: 'var(--ink-dim)' }}>
+                +{r.xp} XP
+              </span>
             </div>
-            <div
-              style={{
-                width: 92,
-                fontSize: 12,
-                color: 'var(--ink)',
-                flexShrink: 0,
-                letterSpacing: '0.02em',
-              }}
-            >
-              {r.domainName}
-            </div>
-            <div
-              className="mono"
-              style={{
-                flex: 1,
-                textAlign: 'right',
-                fontSize: 11,
-                color: r.winner === 'user' ? userTypeMeta.color : 'var(--ink-dim)',
-              }}
-            >
-              {Math.round(r.user * 100)}
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--ink-dim)', width: 12, textAlign: 'center' }}>
-              :
-            </div>
-            <div
-              className="mono"
-              style={{
-                width: 32,
-                textAlign: 'left',
-                fontSize: 11,
-                color: r.winner === 'opp' ? opp.color : 'var(--ink-dim)',
-              }}
-            >
-              {Math.round(r.opp * 100)}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        <div style={{ marginTop: 14, textAlign: 'center' }}>
+          <a href="/psyche" style={{ textDecoration: 'none' }}>
+            <Button variant="subtle" size="sm">
+              Psyche Engine →
+            </Button>
+          </a>
+        </div>
       </Card>
-
-      <div style={{ marginTop: 18, display: 'flex', justifyContent: 'center', gap: 12 }}>
-        <Button variant="solid" tone={userTypeMeta.color} onClick={onClear}>
-          Back to arena
-        </Button>
-      </div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// History tab
+// Shared helpers
 // ─────────────────────────────────────────────────────────────
-function HistoryTab({ history }) {
-  if (history.length === 0) {
-    return (
-      <Empty
-        emoji="1f5e1"
-        title="No battles yet"
-        body="Enter the arena and fight an archetype. Every battle — win or lose — is logged here."
-      />
-    );
-  }
-  return (
-    <Card>
-      {history.map((h, i) => {
-        const opp = getType(h.archetype);
-        return (
-          <div
-            key={i}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '10px 0',
-              borderBottom: i < history.length - 1 ? '1px solid var(--border)' : 'none',
-            }}
-          >
-            <div style={{ fontSize: 20, color: opp.color, width: 28, textAlign: 'center' }}>
-              {opp.glyph}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, color: 'var(--ink)' }}>{opp.name}</div>
-              <div
-                className="mono"
-                style={{ fontSize: 9, color: 'var(--ink-dim)', letterSpacing: '0.04em' }}
-              >
-                {new Date(h.at).toLocaleDateString()} · {h.userWins}–{h.oppWins}
-              </div>
-            </div>
-            <div
-              className="mono"
-              style={{
-                fontSize: 9,
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
-                color: h.won ? 'var(--good)' : 'var(--bad)',
-              }}
-            >
-              {h.won ? 'Win' : 'Loss'}
-            </div>
-          </div>
-        );
-      })}
-    </Card>
-  );
-}
 
-// ─────────────────────────────────────────────────────────────
 function SectionTitle({ children, color }) {
   return (
     <div
@@ -641,6 +520,69 @@ function SectionTitle({ children, color }) {
       }}
     >
       {children}
+    </div>
+  );
+}
+
+function StatBadge({ label, value, color }) {
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div
+        style={{
+          fontSize: 24,
+          fontWeight: 300,
+          color,
+          lineHeight: 1,
+          fontFamily: 'var(--mono)',
+        }}
+      >
+        {value}
+      </div>
+      <div
+        className="mono"
+        style={{
+          fontSize: 7,
+          letterSpacing: '0.22em',
+          color: 'var(--ink-dim)',
+          textTransform: 'uppercase',
+          marginTop: 4,
+        }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, subtitle }) {
+  return (
+    <div
+      style={{
+        textAlign: 'center',
+        padding: '14px 8px',
+        background: 'var(--bg-raised)',
+        borderRadius: 8,
+        border: '1px solid var(--border)',
+      }}
+    >
+      <div style={{ fontSize: 28, fontWeight: 300, color: 'var(--ink)', lineHeight: 1 }}>
+        {value}
+      </div>
+      <div
+        className="mono"
+        style={{
+          fontSize: 8,
+          letterSpacing: '0.22em',
+          color: 'var(--ink-dim)',
+          textTransform: 'uppercase',
+          margin: '6px 0 2px',
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ fontSize: 10, color: 'var(--ink-faint)' }}>
+        {subtitle}
+      </div>
     </div>
   );
 }

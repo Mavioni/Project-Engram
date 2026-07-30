@@ -33,6 +33,7 @@ const Pricing = lazy(() => import('./features/subscription/Pricing.jsx'));
 const Rituals = lazy(() => import('./features/rituals/Rituals.jsx'));
 const RitualPlayer = lazy(() => import('./features/rituals/RitualPlayer.jsx'));
 const SelfMirror = lazy(() => import('./features/self-mirror/SelfMirrorPage.jsx'));
+const PsychePage = lazy(() => import('./features/psyche/PsychePage.jsx'));
 const SignIn = lazy(() => import('./features/auth/SignIn.jsx'));
 const TwoFactorChallenge = lazy(() =>
   import('./features/auth/TwoFactorChallenge.jsx'),
@@ -86,6 +87,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/engram" element={<Engram />} />
+            <Route path="/psyche" element={<PsychePage />} />
 
             {/* Secondary routes (in-page links) */}
             <Route path="/settings" element={<Settings />} />

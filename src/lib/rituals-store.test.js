@@ -8,10 +8,7 @@ const reset = () => {
     engram: {
       xp: 0,
       level: 1,
-      defeated: [],
-      battleHistory: [],
       pendingLevelUp: null,
-      dailyChallenge: null,
     },
     settings: { ambientAudio: true },
   });

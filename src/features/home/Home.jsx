@@ -15,7 +15,7 @@
 // the dashboard never shows everything at once.
 // ─────────────────────────────────────────────────────────────
 
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { subDays } from 'date-fns';
 import Screen from '../../components/Screen.jsx';
@@ -52,7 +52,6 @@ export default function Home() {
   const recent = useMemo(() => selectLastN({ entries }, 5), [entries]);
   const totalNotes = useStore(selectTotalNoteCount);
   const byDay = useMemo(() => selectEntriesByDay({ entries }), [entries]);
-  const ensureDailyChallenge = useStore((s) => s.ensureDailyChallenge);
 
   const streak = useMemo(() => currentStreak(entries), [entries]);
   const totalDays = entries.length;
@@ -82,16 +81,6 @@ export default function Home() {
     [entries],
   );
   const topPattern = activityLift[0] || null;
-
-  // Seed today's arena challenge if IRIS is done and nothing's set yet.
-  useEffect(() => {
-    if (hasIris) ensureDailyChallenge();
-  }, [hasIris, ensureDailyChallenge]);
-
-  const challenge = engram?.dailyChallenge;
-  const challengeFresh =
-    challenge && challenge.day === dayKey() && challenge.archetype;
-  const challengeMeta = challengeFresh ? getType(challenge.archetype) : null;
 
   // The outer <TopBar /> already displays the "Engram" brand. Don't
   // echo it in the page title — that's what produced the "website in
@@ -138,8 +127,7 @@ export default function Home() {
               }}
             >
               24 facets. 16 crucible scenarios. Your Engram replica comes alive
-              the moment you finish — your Player Card, your Coliseum standing,
-              and your arena contender.
+              the moment you finish — your Player Card and growth tracking.
             </p>
             <Button variant="solid" tone="var(--d-exi)" onClick={() => navigate('/iris')}>
               Begin the simulation
@@ -272,95 +260,6 @@ export default function Home() {
         );
       })()}
 
-      {/* ── Daily challenge (only when IRIS done) ── */}
-      {challengeFresh && challengeMeta && (
-        <Card
-          accent={challengeMeta.color}
-          style={{ marginBottom: 24, cursor: 'pointer' }}
-        >
-          <button
-            onClick={() => navigate('/engram')}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-              background: 'none',
-              border: 'none',
-              padding: 0,
-              textAlign: 'left',
-              cursor: 'pointer',
-              color: 'inherit',
-            }}
-          >
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                background: `color-mix(in srgb, ${challengeMeta.color} 18%, transparent)`,
-                display: 'grid',
-                placeItems: 'center',
-                color: challengeMeta.color,
-                fontSize: 20,
-                flexShrink: 0,
-              }}
-            >
-              {challenge.completed ? '✓' : challengeMeta.glyph}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                className="mono"
-                style={{
-                  fontSize: 8,
-                  letterSpacing: '0.28em',
-                  color: 'var(--ink-dim)',
-                  textTransform: 'uppercase',
-                }}
-              >
-                {challenge.completed ? "Today's challenge · done" : "Today's challenge"}
-              </div>
-              <div
-                style={{
-                  fontSize: 15,
-                  color: 'var(--ink)',
-                  fontWeight: 400,
-                  marginTop: 2,
-                }}
-              >
-                {challenge.completed
-                  ? `You bested ${challengeMeta.name}.`
-                  : `Battle ${challengeMeta.name}`}
-              </div>
-              <div
-                className="mono"
-                style={{
-                  fontSize: 10,
-                  color: 'var(--ink-dim)',
-                  marginTop: 2,
-                  letterSpacing: '0.04em',
-                }}
-              >
-                {challenge.completed
-                  ? '+100 XP claimed'
-                  : 'Win in the arena for +100 XP · daily reset'}
-              </div>
-            </div>
-            <div
-              className="mono"
-              style={{
-                fontSize: 9,
-                letterSpacing: '0.22em',
-                color: challenge.completed ? 'var(--good)' : challengeMeta.color,
-                textTransform: 'uppercase',
-              }}
-            >
-              {challenge.completed ? 'Sealed' : 'Enter →'}
-            </div>
-          </button>
-        </Card>
-      )}
-
       {/* ── Quick stats ── */}
       <div
         style={{
@@ -468,7 +367,7 @@ export default function Home() {
       {/* ── Engram teaser ── */}
       {hasIris && (
         <>
-          <SectionHeader linkLabel="Enter arena" linkTo="/engram">
+          <SectionHeader linkLabel="Your replica" linkTo="/engram">
             Your Engram
           </SectionHeader>
           <EngramTeaser engram={engram} typeMeta={typeMeta} />
@@ -739,7 +638,6 @@ function EngramTeaser({ engram, typeMeta }) {
   // Older persisted schemas may not have an `engram` slice at all —
   // guard every access so the dashboard never crashes on upgrade.
   const level = levelFromXp(engram?.xp || 0);
-  const defeated = (engram?.defeated || []).length;
   return (
     <Card accent={typeMeta.color} style={{ marginBottom: 24, cursor: 'pointer' }}>
       <button
@@ -780,7 +678,7 @@ function EngramTeaser({ engram, typeMeta }) {
             className="mono"
             style={{ fontSize: 10, color: 'var(--ink-dim)', marginTop: 2, letterSpacing: '0.04em' }}
           >
-            {engram.xp} XP · {defeated} / 9 seals
+            {engram.xp} XP · stats, world, growth
           </div>
         </div>
         <div
@@ -792,7 +690,7 @@ function EngramTeaser({ engram, typeMeta }) {
             textTransform: 'uppercase',
           }}
         >
-          Arena →
+          View →
         </div>
       </button>
     </Card>
